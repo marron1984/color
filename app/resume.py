@@ -257,7 +257,7 @@ def _heuristic_parse(text: str) -> dict[str, Any]:
     if m:
         fields["desired_salary"] = int(m.group(1))
 
-    m = re.search(r"(?:希望(?:勤務地)?|勤務地|居住地|住所)[:：\s]*([^\s／/,、\n]{2,10})", text)
+    m = re.search(r"(?:希望勤務地|勤務地|居住地|現住所|住所)[:：\s]*([^\s／/,、\n]{2,10})", text)
     if m:
         fields["location"] = m.group(1).strip()
 

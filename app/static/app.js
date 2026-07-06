@@ -27,37 +27,71 @@ const AVAIL_JA = { available: "即勤務可", assigned: "勤務中", unavailable
 const AVAIL_CLS = { available: "green", assigned: "warn", unavailable: "gray" };
 const KIND_JA = { new: "新規開拓", existing: "既存顧客" };
 
-// スキル/必須スキルのテキスト→配列変換
-function parseSkills(text) {
-  return text.split("\n").map(l => l.trim()).filter(Boolean).map(l => {
-    const [name, level] = l.split(",").map(s => s.trim());
-    return { name, level: parseInt(level || "1", 10) };
-  });
+// 入力ビルダー: 名前＋レベル等を選んで「追加」→チップ表示（×で削除）
+function initBuilder(id) {
+  const root = document.getElementById(id);
+  if (!root) return null;
+  const kind = root.dataset.kind;                 // skill / lang / reqskill / reqlang / name
+  const chips = root.querySelector(".builder-chips");
+  const nameEl = root.querySelector(".bd-name");
+  const levelEl = root.querySelector(".bd-level");
+  const weightEl = root.querySelector(".bd-weight");
+  const minEl = root.querySelector(".bd-min");
+  const addBtn = root.querySelector(".bd-add");
+  let items = [];
+
+  const WLABEL = { 3: "重要度:高", 2: "重要度:中", 1: "重要度:低" };
+  function chipText(it) {
+    if (kind === "skill" || kind === "lang") return `${esc(it.name)} <span>Lv${it.level}</span>`;
+    if (kind === "reqskill") return `${esc(it.name)} <span>${WLABEL[it.weight] || ""}・Lv${it.min_level}以上</span>`;
+    if (kind === "reqlang") return `${esc(it.name)} <span>Lv${it.min_level}以上</span>`;
+    return esc(it.name);
+  }
+  function render() {
+    if (!items.length) { chips.innerHTML = '<span class="builder-empty">まだ追加されていません</span>'; return; }
+    chips.innerHTML = items.map((it, i) =>
+      `<span class="bchip">${chipText(it)}<button type="button" data-i="${i}" aria-label="削除">×</button></span>`).join("");
+    chips.querySelectorAll("button[data-i]").forEach(b => b.onclick = () => { items.splice(+b.dataset.i, 1); render(); });
+  }
+  function add() {
+    const name = (nameEl.value || "").trim();
+    if (!name) { nameEl.focus(); return; }
+    const it = { name };
+    if (kind === "skill" || kind === "lang") it.level = parseInt(levelEl.value, 10);
+    if (kind === "reqskill") { it.weight = parseFloat(weightEl.value); it.min_level = parseInt(minEl.value, 10); }
+    if (kind === "reqlang") it.min_level = parseInt(minEl.value, 10);
+    const dup = items.findIndex(x => x.name === name);  // 同名は上書き
+    if (dup >= 0) items[dup] = it; else items.push(it);
+    nameEl.value = ""; render(); nameEl.focus();
+  }
+  addBtn.onclick = add;
+  nameEl.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); add(); } });
+  render();
+
+  return {
+    get() { return kind === "name" ? items.map(i => i.name) : items.map(i => ({ ...i })); },
+    set(arr) {
+      items = (arr || []).map(x => {
+        if (kind === "name") return { name: typeof x === "string" ? x : x.name };
+        if (kind === "skill" || kind === "lang") return { name: x.name, level: x.level || 3 };
+        if (kind === "reqskill") return { name: x.name, weight: x.weight || 2, min_level: x.min_level || 1 };
+        if (kind === "reqlang") return { name: x.name, min_level: x.min_level || 1 };
+        return { name: x.name };
+      });
+      render();
+    },
+    clear() { items = []; render(); },
+  };
 }
-function parseRequiredSkills(text) {
-  return text.split("\n").map(l => l.trim()).filter(Boolean).map(l => {
-    const [name, weight, min_level] = l.split(",").map(s => s.trim());
-    return { name, weight: parseFloat(weight || "1"), min_level: parseInt(min_level || "1", 10) };
-  });
-}
-// 対応言語（言語,レベル）
-function parseLanguages(text) {
-  return text.split("\n").map(l => l.trim()).filter(Boolean).map(l => {
-    const [name, level] = l.split(",").map(s => s.trim());
-    return { name, level: parseInt(level || "1", 10) };
-  });
-}
-// 必要言語（言語,最低レベル）
-function parseRequiredLanguages(text) {
-  return text.split("\n").map(l => l.trim()).filter(Boolean).map(l => {
-    const [name, min_level] = l.split(",").map(s => s.trim());
-    return { name, min_level: parseInt(min_level || "1", 10) };
-  });
-}
-// カンマ/読点区切り → 配列
-function parseList(text) {
-  return (text || "").split(/[,、]/).map(s => s.trim()).filter(Boolean);
-}
+
+// 各ビルダーを初期化（DOM は body 末尾で読み込まれるため即時取得可）
+const B = {
+  talentSkills: initBuilder("talent-skill-builder"),
+  talentLangs: initBuilder("talent-lang-builder"),
+  talentCountries: initBuilder("talent-country-builder"),
+  jobSkills: initBuilder("job-skill-builder"),
+  jobLangs: initBuilder("job-lang-builder"),
+};
 
 // ---------- タブ切替 ----------
 document.querySelectorAll(".tab").forEach(btn => {
@@ -176,10 +210,7 @@ function fillTalentForm(fields) {
   };
   set("name", fields.name);
   set("kana", fields.kana);
-  if (Array.isArray(fields.skills) && fields.skills.length) {
-    form.elements["skills"].value = fields.skills
-      .map(s => `${s.name},${s.level || 3}`).join("\n");
-  }
+  if (Array.isArray(fields.skills) && fields.skills.length) B.talentSkills.set(fields.skills);
   if (fields.experience_years) set("experience_years", fields.experience_years);
   if (fields.desired_salary) set("desired_salary", fields.desired_salary);
   set("type_os", fields.type_os);
@@ -188,13 +219,8 @@ function fillTalentForm(fields) {
   // 海外人材向け
   set("nationality", fields.nationality);
   set("visa_status", fields.visa_status);
-  if (Array.isArray(fields.languages) && fields.languages.length) {
-    form.elements["languages"].value = fields.languages
-      .map(l => `${l.name},${l.level || 3}`).join("\n");
-  }
-  if (Array.isArray(fields.desired_countries) && fields.desired_countries.length) {
-    form.elements["desired_countries"].value = fields.desired_countries.join(", ");
-  }
+  if (Array.isArray(fields.languages) && fields.languages.length) B.talentLangs.set(fields.languages);
+  if (Array.isArray(fields.desired_countries) && fields.desired_countries.length) B.talentCountries.set(fields.desired_countries);
   // 連絡先
   set("phone", fields.phone);
   set("email", fields.email);
@@ -236,14 +262,16 @@ document.getElementById("talent-form").addEventListener("submit", async e => {
   e.preventDefault();
   const f = new FormData(e.target);
   const payload = Object.fromEntries(f);
-  payload.skills = parseSkills(payload.skills || "");
+  payload.skills = B.talentSkills.get();
+  payload.languages = B.talentLangs.get();
+  payload.desired_countries = B.talentCountries.get();
   payload.experience_years = parseFloat(payload.experience_years || "0");
   payload.desired_salary = parseInt(payload.desired_salary || "0", 10);
-  payload.languages = parseLanguages(payload.languages || "");
-  payload.desired_countries = parseList(payload.desired_countries || "");
   try {
     await api("/api/talents", { method: "POST", body: JSON.stringify(payload) });
-    e.target.reset(); toast("人材を登録しました"); loadTalents();
+    e.target.reset();
+    B.talentSkills.clear(); B.talentLangs.clear(); B.talentCountries.clear();
+    toast("人材を登録しました"); loadTalents();
   } catch (err) { toast(err.message, true); }
 });
 
@@ -289,16 +317,17 @@ document.getElementById("job-form").addEventListener("submit", async e => {
   const f = new FormData(e.target);
   const payload = Object.fromEntries(f);
   payload.client_id = parseInt(document.getElementById("job-client").value, 10);
-  payload.required_skills = parseRequiredSkills(payload.required_skills || "");
+  payload.required_skills = B.jobSkills.get();
+  payload.required_languages = B.jobLangs.get();
   payload.offered_salary = parseInt(payload.offered_salary || "0", 10);
   payload.headcount = parseInt(payload.headcount || "1", 10);
-  payload.required_languages = parseRequiredLanguages(payload.required_languages || "");
   payload.country = payload.country || "日本";
   payload.currency = payload.currency || "JPY";
   payload.visa_support = e.target.elements["visa_support"].checked;
   try {
     await api("/api/jobs", { method: "POST", body: JSON.stringify(payload) });
-    e.target.reset(); toast("求人を登録しました"); loadJobs();
+    e.target.reset(); B.jobSkills.clear(); B.jobLangs.clear();
+    toast("求人を登録しました"); loadJobs();
   } catch (err) { toast(err.message, true); }
 });
 

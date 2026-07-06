@@ -76,6 +76,48 @@
     <option value="家族滞在"></option>
     <option value="要ビザサポート"></option>
   </datalist>
+  <datalist id="skill-list">
+    <option value="ホール接客"></option>
+    <option value="レジ"></option>
+    <option value="ドリンク"></option>
+    <option value="配膳"></option>
+    <option value="多言語接客"></option>
+    <option value="調理"></option>
+    <option value="仕込み"></option>
+    <option value="焼き場"></option>
+    <option value="揚げ場"></option>
+    <option value="盛り付け"></option>
+    <option value="寿司握り"></option>
+    <option value="魚さばき"></option>
+    <option value="製菓"></option>
+    <option value="パティシエ"></option>
+    <option value="バリスタ"></option>
+    <option value="ラテアート"></option>
+    <option value="ソムリエ"></option>
+    <option value="ワイン"></option>
+    <option value="メニュー開発"></option>
+    <option value="原価管理"></option>
+    <option value="店舗管理"></option>
+    <option value="シフト管理"></option>
+    <option value="在庫管理"></option>
+    <option value="衛生管理"></option>
+    <option value="発注"></option>
+    <option value="洗い場"></option>
+  </datalist>
+  <datalist id="language-list">
+    <option value="日本語"></option>
+    <option value="英語"></option>
+    <option value="中国語"></option>
+    <option value="韓国語"></option>
+    <option value="ベトナム語"></option>
+    <option value="ネパール語"></option>
+    <option value="タガログ語"></option>
+    <option value="タイ語"></option>
+    <option value="インドネシア語"></option>
+    <option value="ミャンマー語"></option>
+    <option value="フランス語"></option>
+    <option value="スペイン語"></option>
+  </datalist>
 
   <main>
     <!-- ========== マッチング ========== -->
@@ -107,9 +149,28 @@
           <form id="job-form">
             <label>店舗<select id="job-client" required></select></label>
             <label>求人タイトル<input name="title" required placeholder="ホールスタッフ（週末中心）" /></label>
-            <label>必須スキル（1行1件: 名称,重み,最低レベル）
-              <textarea name="required_skills" rows="3" placeholder="ホール接客,3,3&#10;レジ,1,2"></textarea>
-            </label>
+            <div class="field">
+              <div class="field-label">必須スキル <span class="field-hint">スキルを選び、重要度と最低レベルを決めて「追加」</span></div>
+              <div class="builder" id="job-skill-builder" data-kind="reqskill">
+                <div class="builder-controls">
+                  <input class="bd-name" list="skill-list" placeholder="スキル名（例: ホール接客）" />
+                  <select class="bd-weight" title="重要度">
+                    <option value="3">重要度: 高</option>
+                    <option value="2" selected>重要度: 中</option>
+                    <option value="1">重要度: 低</option>
+                  </select>
+                  <select class="bd-min" title="最低レベル">
+                    <option value="1">Lv1以上</option>
+                    <option value="2">Lv2以上</option>
+                    <option value="3" selected>Lv3以上</option>
+                    <option value="4">Lv4以上</option>
+                    <option value="5">Lv5</option>
+                  </select>
+                  <button type="button" class="bd-add secondary">＋追加</button>
+                </div>
+                <div class="builder-chips"></div>
+              </div>
+            </div>
             <div class="row">
               <label>提示年収(万円)<input name="offered_salary" type="number" value="0" /></label>
               <label>職種<input name="type_os" list="positions" placeholder="ホール／キッチン／店長 など" /></label>
@@ -132,9 +193,23 @@
                 <label>通貨<input name="currency" value="JPY" placeholder="JPY／SGD／USD" /></label>
                 <label class="checkbox"><input name="visa_support" type="checkbox" /> ビザサポートあり</label>
               </div>
-              <label>必要言語（1行1件: 言語,最低レベル1-5）
-                <textarea name="required_languages" rows="2" placeholder="日本語,3&#10;英語,4"></textarea>
-              </label>
+              <div class="field">
+                <div class="field-label">必要言語 <span class="field-hint">言語を選び、最低レベルを決めて「追加」</span></div>
+                <div class="builder" id="job-lang-builder" data-kind="reqlang">
+                  <div class="builder-controls">
+                    <input class="bd-name" list="language-list" placeholder="言語（例: 英語）" />
+                    <select class="bd-min" title="最低レベル">
+                      <option value="1">Lv1 挨拶程度</option>
+                      <option value="2">Lv2 初級</option>
+                      <option value="3" selected>Lv3 日常会話</option>
+                      <option value="4">Lv4 ビジネス</option>
+                      <option value="5">Lv5 ネイティブ</option>
+                    </select>
+                    <button type="button" class="bd-add secondary">＋追加</button>
+                  </div>
+                  <div class="builder-chips"></div>
+                </div>
+              </div>
             </div>
             <label>説明<textarea name="description" rows="2"></textarea></label>
             <button class="primary" type="submit">登録</button>
@@ -167,9 +242,23 @@
               <label>氏名<input name="name" required placeholder="佐藤 みなみ" /></label>
               <label>フリガナ<input name="kana" placeholder="サトウ ミナミ" /></label>
             </div>
-            <label>スキル（1行1件: 名称,レベル1-5）
-              <textarea name="skills" rows="3" placeholder="ホール接客,5&#10;調理,4"></textarea>
-            </label>
+            <div class="field">
+              <div class="field-label">スキル <span class="field-hint">スキルを選び、習熟度を選んで「追加」</span></div>
+              <div class="builder" id="talent-skill-builder" data-kind="skill">
+                <div class="builder-controls">
+                  <input class="bd-name" list="skill-list" placeholder="スキル名（例: ホール接客）" />
+                  <select class="bd-level" title="習熟度">
+                    <option value="1">Lv1 見習い</option>
+                    <option value="2">Lv2 初級</option>
+                    <option value="3" selected>Lv3 中級</option>
+                    <option value="4">Lv4 上級</option>
+                    <option value="5">Lv5 熟練</option>
+                  </select>
+                  <button type="button" class="bd-add secondary">＋追加</button>
+                </div>
+                <div class="builder-chips"></div>
+              </div>
+            </div>
             <div class="row">
               <label>経験年数<input name="experience_years" type="number" step="0.5" value="0" /></label>
               <label>希望年収(万円)<input name="desired_salary" type="number" value="0" /></label>
@@ -198,12 +287,33 @@
                 <label>国籍<input name="nationality" list="nationalities" placeholder="日本／ベトナム など" /></label>
                 <label>在留資格・就労資格<input name="visa_status" list="visa-statuses" placeholder="特定技能 など（任意）" /></label>
               </div>
-              <label>対応言語（1行1件: 言語,レベル1-5 ／ 5=ネイティブ）
-                <textarea name="languages" rows="2" placeholder="日本語,5&#10;英語,3"></textarea>
-              </label>
-              <label>希望勤務国・地域（カンマ区切り）
-                <input name="desired_countries" list="countries" placeholder="日本, シンガポール" />
-              </label>
+              <div class="field">
+                <div class="field-label">対応言語 <span class="field-hint">言語を選び、レベルを選んで「追加」</span></div>
+                <div class="builder" id="talent-lang-builder" data-kind="lang">
+                  <div class="builder-controls">
+                    <input class="bd-name" list="language-list" placeholder="言語（例: 日本語）" />
+                    <select class="bd-level" title="レベル">
+                      <option value="1">Lv1 挨拶程度</option>
+                      <option value="2">Lv2 初級</option>
+                      <option value="3" selected>Lv3 日常会話</option>
+                      <option value="4">Lv4 ビジネス</option>
+                      <option value="5">Lv5 ネイティブ</option>
+                    </select>
+                    <button type="button" class="bd-add secondary">＋追加</button>
+                  </div>
+                  <div class="builder-chips"></div>
+                </div>
+              </div>
+              <div class="field">
+                <div class="field-label">希望勤務国・地域 <span class="field-hint">国・地域を選んで「追加」</span></div>
+                <div class="builder" id="talent-country-builder" data-kind="name">
+                  <div class="builder-controls">
+                    <input class="bd-name" list="countries" placeholder="国・地域（例: シンガポール）" />
+                    <button type="button" class="bd-add secondary">＋追加</button>
+                  </div>
+                  <div class="builder-chips"></div>
+                </div>
+              </div>
             </div>
             <div class="contact-section">
               <div class="contact-title">📞 連絡先（一覧には表示されません）</div>
