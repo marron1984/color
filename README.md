@@ -18,7 +18,8 @@
 - 🎯 **AI ピックアップ**: 求人票に対して登録人材をスコアリングし、適合度の高い順に候補を提案
 - 📊 **説明可能なスコア**: スペックスキル / 待遇条件 / タイプ(OS) / 勤務形態 / 所在地 / 稼働可否の6観点を内訳表示
 - 💡 **推薦理由の自然文生成**: Claude API があれば LLM で推薦理由を生成、無ければスコア明細からテンプレート生成（**API キー無しでも動作**）
-- 🗂 クライアント・人材・求人・マッチングを一元管理する Web UI
+- 📄 **履歴書の自動読み込み**: PDF・画像・テキストの履歴書から人材登録フォームを自動入力（Claude API があれば PDF/画像も解析、無ければテキストを簡易解析）
+- 🗂 クライアント・人材・求人・マッチングを一元管理する明るい Web UI
 
 ## 技術スタック
 
@@ -82,6 +83,7 @@ STAFFING_DATABASE_URL="postgresql+psycopg://user:pass@host/dbname"
 
 1. **クライアント**タブで企業を登録
 2. **人材**タブで職人・スタッフを登録（スキルは「名称,レベル」を1行1件）
+   - 「📄 履歴書から自動入力」で履歴書（PDF/画像/テキスト）を読み込むと、フォームが自動入力されます。内容を確認・修正してから登録してください。
 3. **求人**タブで求人票を登録（必須スキルは「名称,重み,最低レベル」を1行1件）
 4. **マッチング**タブで求人を選び「ピックアップ実行」→ 適合度順に候補が表示されます
 
@@ -110,6 +112,7 @@ STAFFING_DATABASE_URL="postgresql+psycopg://user:pass@host/dbname"
 | GET/POST/DELETE | `/api/talents` | 人材管理 |
 | GET/POST/DELETE | `/api/jobs` | 求人管理 |
 | POST | `/api/jobs/{id}/match` | **AI マッチング実行**（`top_n` / `use_llm` / `persist`） |
+| POST | `/api/talents/parse-resume` | **履歴書アップロード**→フォーム下書きを返す（保存はしない） |
 | GET | `/api/jobs/{id}/matches` | 保存済みマッチング一覧 |
 | PATCH | `/api/matches/{id}` | 進捗ステータス更新（proposed→interview→offer→hired/rejected） |
 
@@ -134,6 +137,7 @@ app/
   schemas.py    Pydantic 入出力スキーマ
   matching.py   スコアリング・マッチングエンジン
   ai.py         Claude API 推薦理由レイヤー（フォールバック付き）
+  resume.py     履歴書の読み込み・構造化抽出（LLM／簡易解析）
   seed.py       デモデータ投入（建設・製造・飲食）
   database.py   DB 接続（サーバーレスでは /tmp、STAFFING_DATABASE_URL で上書き可）
   static/       Web UI（index.html / app.js / styles.css）

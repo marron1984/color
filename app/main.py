@@ -3,13 +3,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import ai, matching, models, schemas
+from app import ai, matching, models, resume, schemas
 from app.database import get_db, init_db
 
 app = FastAPI(
@@ -81,6 +81,23 @@ def delete_client(client_id: int, db: Session = Depends(get_db)):
 @app.get("/api/talents", response_model=list[schemas.TalentOut])
 def list_talents(db: Session = Depends(get_db)):
     return db.scalars(select(models.Talent).order_by(models.Talent.id.desc())).all()
+
+
+@app.post("/api/talents/parse-resume")
+async def parse_resume(file: UploadFile = File(...)):
+    """アップロードされた履歴書（PDF/画像/テキスト）から登録フォームの下書きを生成.
+
+    保存はせず、フォームに自動入力するための項目のみを返す。
+    """
+    data = await file.read()
+    if not data:
+        raise HTTPException(400, "ファイルが空です")
+    if len(data) > 10 * 1024 * 1024:
+        raise HTTPException(413, "ファイルが大きすぎます（10MB まで）")
+    fields, source = resume.parse_resume(
+        file.filename or "", file.content_type or "", data
+    )
+    return {"fields": fields, "source": source}
 
 
 @app.post("/api/talents", response_model=schemas.TalentOut, status_code=201)

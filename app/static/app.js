@@ -118,6 +118,58 @@ async function loadTalents() {
   }
 }
 
+// 履歴書の読み込み → フォームへ自動入力
+function fillTalentForm(fields) {
+  const form = document.getElementById("talent-form");
+  const set = (name, val) => {
+    if (val !== undefined && val !== null && val !== "" && form.elements[name]) {
+      form.elements[name].value = val;
+    }
+  };
+  set("name", fields.name);
+  set("kana", fields.kana);
+  if (Array.isArray(fields.skills) && fields.skills.length) {
+    form.elements["skills"].value = fields.skills
+      .map(s => `${s.name},${s.level || 3}`).join("\n");
+  }
+  if (fields.experience_years) set("experience_years", fields.experience_years);
+  if (fields.desired_salary) set("desired_salary", fields.desired_salary);
+  set("type_os", fields.type_os);
+  if (fields.work_style && form.elements["work_style"]) form.elements["work_style"].value = fields.work_style;
+  set("location", fields.location);
+  set("profile", fields.profile);
+}
+
+document.getElementById("resume-btn").addEventListener("click", async () => {
+  const input = document.getElementById("resume-file");
+  const status = document.getElementById("resume-status");
+  if (!input.files || !input.files.length) {
+    toast("履歴書ファイルを選択してください", true);
+    return;
+  }
+  status.textContent = "読み込み中…"; status.className = "resume-status loading";
+  const fd = new FormData();
+  fd.append("file", input.files[0]);
+  try {
+    // FormData 送信なので Content-Type は自動設定（api ヘルパは使わない）
+    const res = await fetch("/api/talents/parse-resume", { method: "POST", body: fd });
+    if (!res.ok) {
+      let msg = res.statusText;
+      try { msg = (await res.json()).detail || msg; } catch (_) {}
+      throw new Error(msg);
+    }
+    const data = await res.json();
+    fillTalentForm(data.fields);
+    const label = data.source === "ai" ? "AI が読み込みました" : "簡易解析で読み込みました";
+    status.textContent = `✓ ${label}（内容をご確認ください）`;
+    status.className = "resume-status";
+    toast("履歴書を読み込みました");
+  } catch (err) {
+    status.textContent = ""; status.className = "resume-status err";
+    toast("読み込み失敗: " + err.message, true);
+  }
+});
+
 document.getElementById("talent-form").addEventListener("submit", async e => {
   e.preventDefault();
   const f = new FormData(e.target);

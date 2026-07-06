@@ -89,6 +89,16 @@
       <div class="grid-2">
         <div class="panel">
           <h2>人材登録</h2>
+          <div class="resume-box">
+            <div class="rb-title">📄 履歴書から自動入力</div>
+            <div class="rb-desc">PDF・画像・テキストの履歴書／職務経歴書を読み込んでフォームに反映します（内容は登録前に確認・修正できます）。</div>
+            <div class="resume-row">
+              <input id="resume-file" type="file"
+                     accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,application/pdf,image/*,text/plain" />
+              <button type="button" id="resume-btn" class="secondary">読み込む</button>
+              <span id="resume-status" class="resume-status"></span>
+            </div>
+          </div>
           <form id="talent-form">
             <div class="row">
               <label>氏名<input name="name" required placeholder="田中 太郎" /></label>
