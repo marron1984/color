@@ -55,6 +55,12 @@ body {
 .badge-ok { background: var(--accent-2-soft); color: #0e8a68; border-color: #b7e6d6; }
 .badge-muted { background: #eef2f8; color: var(--muted); }
 
+.storage-warning {
+  background: var(--warn-soft); color: #8a5300; border-bottom: 1px solid #f4d9a8;
+  padding: 10px 20px; font-size: 13px; text-align: center;
+}
+.storage-warning b { color: #7a4a00; }
+
 .tabs {
   display: flex; gap: 4px; padding: 0 20px;
   background: rgba(255, 255, 255, .7);

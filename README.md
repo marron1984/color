@@ -69,22 +69,35 @@ UI 右上のバッジで連携状態（`Claude 連携 ON` / `スコアリング�
 リポジトリを Vercel に接続すればそのままビルド・デプロイされます。
 初回アクセス時にデモデータ（飲食店・海外店舗を含む）が自動投入されます。
 
-### ⚠️ データ永続化について（重要）
+### ⚠️ データ永続化について（重要）— 「登録したものが消える」場合
 
-サーバーレスではファイルシステムが読み取り専用のため、SQLite は書き込み可能な
-`/tmp` に置いています。`/tmp` は**インスタンスが再起動（コールドスタート）すると
-リセット**されるため、UI で登録したデータは永続しません（デモ用途向け）。
+サーバーレス（Vercel）では、既定の SQLite が書き込み可能な `/tmp` に置かれます。
+`/tmp` は**インスタンスの再起動（コールドスタート）でリセット**されるため、
+**UI で登録したデータは保持されません**。この状態のときは画面上部に警告バーが表示されます。
 
-**業務で継続利用（社内管理システム）する場合は、外部の永続 DB を推奨します。**
-`STAFFING_DATABASE_URL` を設定すれば SQLite 以外の DB に切り替えられます。
+継続利用するには **外部の永続データベース（Postgres）** を接続してください。
+接続すると警告バーは消え、データが永続化されます（ドライバ `psycopg[binary]` は同梱済み）。
+
+#### 設定手順（Vercel Postgres / Neon の例）
+
+1. Vercel のプロジェクト → **Storage** から Postgres（Neon）を作成して接続する。
+   - これだけで `POSTGRES_URL` などの環境変数が自動で注入されます。
+   - 本アプリは `STAFFING_DATABASE_URL` → `POSTGRES_URL_NON_POOLING` → `POSTGRES_URL` →
+     `DATABASE_URL` の順に**自動検出**するため、通常は追加設定なしで認識します。
+2. 再デプロイ（または再起動）する。起動時にテーブルが自動作成されます。
+3. 画面上部の警告バーが消えていれば永続化 OK。
+
+外部の Neon / Supabase 等を手動で使う場合は、接続文字列を環境変数に設定します
+（`postgres://...` 形式でも自動で `postgresql+psycopg://` に変換します）。
 
 ```bash
-# 例: Vercel Postgres / Neon などの接続文字列を環境変数に設定
-STAFFING_DATABASE_URL="postgresql+psycopg://user:pass@host/dbname"
+STAFFING_DATABASE_URL="postgres://user:pass@host/dbname?sslmode=require"
 ```
 
-> Postgres 等を使う場合は対応ドライバ（例: `psycopg[binary]`）を
-> `requirements.txt` に追加してください。libSQL/Turso での永続化にも対応可能です。
+- デモデータ: 外部 DB では本番データを汚さないため**自動投入しません**
+  （必要なら `SEED_DEMO=1` で投入、`python -m app.seed` でも投入できます）。
+- ローカル開発では `./staffing.db` に保存され、再起動しても消えません。
+- libSQL/Turso 等でも `STAFFING_DATABASE_URL` を指定すれば利用できます。
 
 ## 食べログからの店舗情報取得
 

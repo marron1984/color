@@ -22,6 +22,11 @@
     <div id="llm-badge" class="badge badge-muted">AI: 確認中…</div>
   </header>
 
+  <div id="storage-warning" class="storage-warning" hidden>
+    ⚠️ 一時ストレージで動作中のため、<b>登録データは保存されません</b>（再起動で消えます）。
+    永続化するには外部データベースを設定してください（README の「データ永続化」を参照）。
+  </div>
+
   <nav class="tabs">
     <button class="tab active" data-tab="match"><span class="tab-ico">🎯</span><span class="tab-txt">マッチング</span></button>
     <button class="tab" data-tab="jobs"><span class="tab-ico">📋</span><span class="tab-txt">求人</span></button>

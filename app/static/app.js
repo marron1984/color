@@ -457,6 +457,9 @@ async function loadHealth() {
       badge.textContent = "AI: スコアリングのみ";
       badge.className = "badge badge-muted";
     }
+    // 一時ストレージ（非永続）で動作している場合は警告を表示
+    const warn = document.getElementById("storage-warning");
+    if (warn) warn.hidden = h.persistent !== false ? true : false;
   } catch (_) {}
 }
 

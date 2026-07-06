@@ -1,6 +1,7 @@
 """FastAPI アプリ本体（REST API + 静的フロントの配信）."""
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
@@ -10,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import ai, matching, models, resume, schemas
-from app.database import get_db, init_db
+from app.database import IS_PERSISTENT, USING_EXTERNAL, get_db, init_db
 
 app = FastAPI(
     title="人材マッチングシステム",
@@ -29,9 +30,15 @@ def _bootstrap() -> None:
     """
     try:
         init_db()
-        from app.seed import seed_if_empty
+        # デモデータの自動投入:
+        #   - 外部 DB（本番想定）には既定で投入しない（本番データを汚さないため）
+        #   - SEED_DEMO=1 で強制投入、SEED_DEMO=0 で抑止も可能
+        seed_env = os.environ.get("SEED_DEMO")
+        do_seed = (seed_env == "1") if seed_env is not None else (not USING_EXTERNAL)
+        if do_seed:
+            from app.seed import seed_if_empty
 
-        seed_if_empty()
+            seed_if_empty()
     except Exception as exc:  # noqa: BLE001 - 初期化失敗でもアプリは起動させる
         import logging
 
@@ -46,7 +53,12 @@ _bootstrap()
 # --------------------------------------------------------------------------- #
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok", "llm_enabled": ai.is_llm_enabled()}
+    return {
+        "status": "ok",
+        "llm_enabled": ai.is_llm_enabled(),
+        "persistent": IS_PERSISTENT,       # False = 一時ストレージ（再起動で消える）
+        "external_db": USING_EXTERNAL,
+    }
 
 
 # --------------------------------------------------------------------------- #
