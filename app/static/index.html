@@ -2,7 +2,11 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#2f6bff" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <title>飲食店専門 人材マッチングシステム</title>
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
@@ -19,10 +23,10 @@
   </header>
 
   <nav class="tabs">
-    <button class="tab active" data-tab="match">🎯 マッチング</button>
-    <button class="tab" data-tab="jobs">📋 求人</button>
-    <button class="tab" data-tab="talents">🧑‍🍳 人材</button>
-    <button class="tab" data-tab="clients">🏬 店舗</button>
+    <button class="tab active" data-tab="match"><span class="tab-ico">🎯</span><span class="tab-txt">マッチング</span></button>
+    <button class="tab" data-tab="jobs"><span class="tab-ico">📋</span><span class="tab-txt">求人</span></button>
+    <button class="tab" data-tab="talents"><span class="tab-ico">🧑‍🍳</span><span class="tab-txt">人材</span></button>
+    <button class="tab" data-tab="clients"><span class="tab-ico">🏬</span><span class="tab-txt">店舗</span></button>
   </nav>
 
   <datalist id="positions">

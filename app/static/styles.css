@@ -69,7 +69,10 @@ body {
   background: none; border: none; color: var(--muted);
   padding: 14px 18px; font-size: 14px; cursor: pointer;
   border-bottom: 2px solid transparent; white-space: nowrap; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 6px;
+  -webkit-tap-highlight-color: transparent;
 }
+.tab-ico { font-size: 15px; line-height: 1; }
 .tab:hover { color: var(--text); }
 .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
@@ -96,8 +99,9 @@ label.checkbox { flex-direction: row; align-items: center; gap: 6px; color: var(
 
 input, select, textarea {
   background: #fff; border: 1px solid var(--border-strong); color: var(--text);
-  padding: 10px 12px; border-radius: 9px; font-size: 14px; font-family: inherit;
+  padding: 10px 12px; border-radius: 9px; font-size: 16px; font-family: inherit;
   transition: border-color .15s, box-shadow .15s;
+  max-width: 100%;
 }
 input:focus, select:focus, textarea:focus {
   outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);
@@ -202,3 +206,101 @@ button.ghost:hover { color: var(--danger); border-color: var(--danger); backgrou
 }
 .toast.show { transform: translateX(-50%) translateY(0); }
 .toast.err { border-color: var(--danger); color: var(--danger); }
+
+/* ============================================================= */
+/*  スマホ対応（〜640px）: 下部固定ナビ・1カラム・タップ最適化      */
+/* ============================================================= */
+@media (max-width: 640px) {
+  .app-header {
+    padding: 12px 16px;
+    position: sticky; top: 0; z-index: 20;
+    padding-top: max(12px, env(safe-area-inset-top));
+  }
+  .logo { width: 40px; height: 40px; font-size: 22px; border-radius: 11px; }
+  .app-header h1 { font-size: 16px; }
+  .tagline { display: none; }               /* 省スペース化 */
+  .badge { font-size: 11px; padding: 5px 10px; }
+
+  main {
+    padding: 14px 12px;
+    /* 下部ナビ + iOS セーフエリア分の余白 */
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+    max-width: 100%;
+  }
+
+  /* タブを下部固定ナビ（アイコン＋ラベル）に */
+  .tabs {
+    position: fixed; top: auto; bottom: 0; left: 0; right: 0;
+    padding: 6px 4px;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+    background: rgba(255, 255, 255, .96);
+    border-top: 1px solid var(--border); border-bottom: none;
+    box-shadow: 0 -4px 20px rgba(28, 55, 90, .08);
+    justify-content: space-around; overflow: visible;
+  }
+  .tab {
+    flex: 1; flex-direction: column; gap: 3px;
+    padding: 8px 4px; border-bottom: none; border-radius: 10px;
+    font-size: 11px; min-height: 52px; justify-content: center;
+  }
+  .tab-ico { font-size: 21px; }
+  .tab.active { color: var(--accent); background: var(--accent-soft); border-bottom: none; }
+
+  /* 余白・角丸を圧縮 */
+  .panel { padding: 15px; border-radius: 12px; margin-bottom: 14px; }
+  .grid-2 { gap: 14px; }
+
+  /* フォームの行は 1 カラムに積む */
+  .row { flex-direction: column; align-items: stretch; gap: 0; }
+  .row label { min-width: 0; width: 100%; }
+  label.checkbox { padding: 6px 0; min-height: 40px; }
+
+  /* タップ領域を拡大 */
+  input, select, textarea { padding: 12px; border-radius: 10px; }
+  button.primary { width: 100%; padding: 14px 20px; min-height: 48px; font-size: 15px; }
+  button.secondary { min-height: 44px; }
+  button.ghost { padding: 8px 12px; min-height: 36px; }
+
+  /* 履歴書アップロード行を縦積み */
+  .resume-row { flex-direction: column; align-items: stretch; }
+  .resume-row input[type="file"] { width: 100%; }
+  .resume-row button.secondary { width: 100%; }
+  .resume-status { text-align: center; }
+
+  /* マッチング結果カード */
+  .match-card { flex-direction: column; gap: 10px; padding: 14px; }
+  .match-card .rank {
+    min-width: 0; text-align: left; font-size: 15px;
+    color: var(--muted); display: flex; align-items: center; gap: 6px;
+  }
+  .match-card .rank::before { content: "候補"; font-size: 12px; }
+  .match-card .rank.top { color: var(--warn); }
+  .match-top { align-items: flex-start; gap: 10px; }
+  .match-top > div:first-child { flex: 1; min-width: 0; }  /* 氏名を折り返させ、スコアを右上に固定 */
+  .match-name { font-size: 15px; }
+  .score-pill { font-size: 18px; padding: 3px 12px; flex-shrink: 0; }
+
+  /* スコア内訳: ラベルを細く */
+  .bars { grid-template-columns: 78px 1fr; gap: 5px 8px; }
+  .bar-label { font-size: 11px; }
+
+  /* カードのヘッダ内ボタンが潰れないように */
+  .card-head { gap: 10px; }
+
+  /* トーストは下部ナビの上に */
+  .toast {
+    left: 12px; right: 12px; transform: translateY(120px);
+    bottom: calc(76px + env(safe-area-inset-bottom)); width: auto; text-align: center;
+  }
+  .toast.show { transform: translateY(0); }
+}
+
+/* タブレット寄り（641〜880px）: 2カラムフォームは維持しつつ余白調整 */
+@media (min-width: 641px) and (max-width: 880px) {
+  main { padding: 20px 16px; }
+}
+
+/* タップ操作主体の端末ではホバーの浮き上がりを無効化 */
+@media (hover: none) {
+  button.primary:hover { transform: none; }
+}
