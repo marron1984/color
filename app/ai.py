@@ -30,13 +30,17 @@ def is_llm_enabled() -> bool:
 def _talent_summary(talent: Any) -> dict[str, Any]:
     return {
         "氏名": talent.name,
+        "職種": talent.type_os,
         "スキル": talent.skills,
         "経験年数": talent.experience_years,
         "希望年収_万円": talent.desired_salary,
-        "タイプOS": talent.type_os,
         "勤務形態": talent.work_style,
         "所在地": talent.location,
         "稼働状況": talent.availability,
+        "国籍": talent.nationality,
+        "対応言語": talent.languages,
+        "在留資格": talent.visa_status,
+        "希望勤務国": talent.desired_countries,
         "プロフィール": talent.profile,
     }
 
@@ -44,11 +48,14 @@ def _talent_summary(talent: Any) -> dict[str, Any]:
 def _job_summary(job: Any) -> dict[str, Any]:
     return {
         "求人タイトル": job.title,
+        "職種": job.type_os,
         "必須スキル": job.required_skills,
-        "提示年収_万円": job.offered_salary,
-        "タイプOS": job.type_os,
+        "提示年収": job.offered_salary,
+        "通貨": job.currency,
         "勤務形態": job.work_style,
-        "所在地": job.location,
+        "勤務国": job.country,
+        "必要言語": job.required_languages,
+        "ビザサポート": job.visa_support,
         "説明": job.description,
     }
 

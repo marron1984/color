@@ -40,6 +40,24 @@ function parseRequiredSkills(text) {
     return { name, weight: parseFloat(weight || "1"), min_level: parseInt(min_level || "1", 10) };
   });
 }
+// 対応言語（言語,レベル）
+function parseLanguages(text) {
+  return text.split("\n").map(l => l.trim()).filter(Boolean).map(l => {
+    const [name, level] = l.split(",").map(s => s.trim());
+    return { name, level: parseInt(level || "1", 10) };
+  });
+}
+// 必要言語（言語,最低レベル）
+function parseRequiredLanguages(text) {
+  return text.split("\n").map(l => l.trim()).filter(Boolean).map(l => {
+    const [name, min_level] = l.split(",").map(s => s.trim());
+    return { name, min_level: parseInt(min_level || "1", 10) };
+  });
+}
+// カンマ/読点区切り → 配列
+function parseList(text) {
+  return (text || "").split(/[,、]/).map(s => s.trim()).filter(Boolean);
+}
 
 // ---------- タブ切替 ----------
 document.querySelectorAll(".tab").forEach(btn => {
@@ -99,15 +117,24 @@ async function loadTalents() {
     const el = document.createElement("div");
     el.className = "card";
     const skills = (t.skills || []).map(s => `<span class="chip">${esc(s.name)} Lv${s.level}</span>`).join("");
+    const langs = (t.languages || []).map(l => `<span class="chip green">${esc(l.name)} Lv${l.level}</span>`).join("");
+    const countries = (t.desired_countries || []).length
+      ? `<div class="card-meta">🌐 希望勤務国: ${(t.desired_countries || []).map(esc).join("・")}</div>` : "";
+    const natVisa = [
+      t.nationality ? `国籍: ${esc(t.nationality)}` : "",
+      t.visa_status ? `在留資格: ${esc(t.visa_status)}` : "",
+    ].filter(Boolean).join(" ／ ");
     el.innerHTML = `
       <div class="card-head">
         <div>
           <div class="card-title">${esc(t.name)} <span class="card-meta">${esc(t.kana || "")}</span></div>
           <div class="card-meta">経験${t.experience_years}年 ／ 希望${t.desired_salary}万 ／ ${esc(t.type_os || "-")} ／ ${esc(t.location || "-")} ／ ${WORK_STYLE_JA[t.work_style] || t.work_style}</div>
+          ${natVisa ? `<div class="card-meta">${natVisa}</div>` : ""}
         </div>
         <button class="ghost" data-del="${t.id}">削除</button>
       </div>
-      <div class="chips">${skills}<span class="chip ${AVAIL_CLS[t.availability]}">${AVAIL_JA[t.availability]}</span></div>
+      <div class="chips">${skills}${langs}<span class="chip ${AVAIL_CLS[t.availability]}">${AVAIL_JA[t.availability]}</span></div>
+      ${countries}
       ${t.profile ? `<div class="card-meta">${esc(t.profile)}</div>` : ""}`;
     el.querySelector("[data-del]").onclick = async () => {
       if (!confirm("削除しますか？")) return;
@@ -137,6 +164,16 @@ function fillTalentForm(fields) {
   set("type_os", fields.type_os);
   if (fields.work_style && form.elements["work_style"]) form.elements["work_style"].value = fields.work_style;
   set("location", fields.location);
+  // 海外人材向け
+  set("nationality", fields.nationality);
+  set("visa_status", fields.visa_status);
+  if (Array.isArray(fields.languages) && fields.languages.length) {
+    form.elements["languages"].value = fields.languages
+      .map(l => `${l.name},${l.level || 3}`).join("\n");
+  }
+  if (Array.isArray(fields.desired_countries) && fields.desired_countries.length) {
+    form.elements["desired_countries"].value = fields.desired_countries.join(", ");
+  }
   set("profile", fields.profile);
 }
 
@@ -177,6 +214,8 @@ document.getElementById("talent-form").addEventListener("submit", async e => {
   payload.skills = parseSkills(payload.skills || "");
   payload.experience_years = parseFloat(payload.experience_years || "0");
   payload.desired_salary = parseInt(payload.desired_salary || "0", 10);
+  payload.languages = parseLanguages(payload.languages || "");
+  payload.desired_countries = parseList(payload.desired_countries || "");
   try {
     await api("/api/talents", { method: "POST", body: JSON.stringify(payload) });
     e.target.reset(); toast("人材を登録しました"); loadTalents();
@@ -192,15 +231,21 @@ async function loadJobs() {
     const el = document.createElement("div");
     el.className = "card";
     const req = (j.required_skills || []).map(s => `<span class="chip">${esc(s.name)}≧Lv${s.min_level}</span>`).join("");
+    const reqLangs = (j.required_languages || []).map(l => `<span class="chip green">${esc(l.name)}≧Lv${l.min_level}</span>`).join("");
+    const cur = j.currency || "JPY";
+    const pay = cur === "JPY" ? `提示${j.offered_salary}万` : `提示${(j.offered_salary || 0).toLocaleString()} ${esc(cur)}`;
+    const overseas = j.country && j.country !== "日本";
+    const countryChip = `<span class="chip ${overseas ? "warn" : "gray"}">${overseas ? "🌐 " : ""}${esc(j.country || "日本")}</span>`;
+    const visaChip = j.visa_support ? `<span class="chip green">ビザ支援あり</span>` : "";
     el.innerHTML = `
       <div class="card-head">
         <div>
           <div class="card-title">${esc(j.title)}</div>
-          <div class="card-meta">${esc(j.client_name || "")} ／ 提示${j.offered_salary}万 ／ ${esc(j.type_os || "-")} ／ ${esc(j.location || "-")} ／ ${WORK_STYLE_JA[j.work_style] || j.work_style} ／ ${j.headcount}名</div>
+          <div class="card-meta">${esc(j.client_name || "")} ／ ${pay} ／ ${esc(j.type_os || "-")} ／ ${esc(j.location || "-")} ／ ${WORK_STYLE_JA[j.work_style] || j.work_style} ／ ${j.headcount}名</div>
         </div>
         <button class="ghost" data-del="${j.id}">削除</button>
       </div>
-      <div class="chips">${req}</div>
+      <div class="chips">${countryChip}${visaChip}${req}${reqLangs}</div>
       ${j.description ? `<div class="card-meta">${esc(j.description)}</div>` : ""}`;
     el.querySelector("[data-del]").onclick = async () => {
       if (!confirm("削除しますか？")) return;
@@ -222,6 +267,10 @@ document.getElementById("job-form").addEventListener("submit", async e => {
   payload.required_skills = parseRequiredSkills(payload.required_skills || "");
   payload.offered_salary = parseInt(payload.offered_salary || "0", 10);
   payload.headcount = parseInt(payload.headcount || "1", 10);
+  payload.required_languages = parseRequiredLanguages(payload.required_languages || "");
+  payload.country = payload.country || "日本";
+  payload.currency = payload.currency || "JPY";
+  payload.visa_support = e.target.elements["visa_support"].checked;
   try {
     await api("/api/jobs", { method: "POST", body: JSON.stringify(payload) });
     e.target.reset(); toast("求人を登録しました"); loadJobs();
@@ -269,7 +318,7 @@ function renderMatches(candidates) {
       <div class="match-body">
         <div class="match-top">
           <div>
-            <div class="match-name">${esc(t.name)} <span class="card-meta">${esc(t.type_os || "")} ／ 経験${t.experience_years}年 ／ ${esc(t.location || "")}</span></div>
+            <div class="match-name">${esc(t.name)} <span class="card-meta">${esc(t.type_os || "")} ／ 経験${t.experience_years}年${t.nationality ? " ／ " + esc(t.nationality) : ""}${(t.languages || []).length ? " ／ " + (t.languages || []).map(l => esc(l.name)).join("・") : ""}</span></div>
           </div>
           <div class="score-pill ${scoreCls}">${c.score}</div>
         </div>

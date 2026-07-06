@@ -9,12 +9,16 @@ from app import matching
 def make_job(**kw):
     base = dict(
         id=1,
-        required_skills=[{"name": "溶接", "weight": 3, "min_level": 4},
-                         {"name": "鉄骨組立", "weight": 2, "min_level": 3}],
+        required_skills=[{"name": "調理", "weight": 3, "min_level": 4},
+                         {"name": "仕込み", "weight": 2, "min_level": 3}],
         offered_salary=500,
-        type_os="現場リーダー",
+        type_os="調理長",
         work_style="onsite",
         location="東京",
+        country="日本",
+        required_languages=[{"name": "日本語", "min_level": 3}],
+        visa_support=False,
+        currency="JPY",
     )
     base.update(kw)
     return SimpleNamespace(**base)
@@ -23,12 +27,16 @@ def make_job(**kw):
 def make_talent(**kw):
     base = dict(
         id=1,
-        skills=[{"name": "溶接", "level": 5}, {"name": "鉄骨組立", "level": 4}],
+        skills=[{"name": "調理", "level": 5}, {"name": "仕込み", "level": 4}],
         desired_salary=450,
-        type_os="現場リーダー",
+        type_os="調理長",
         work_style="onsite",
         location="東京",
         availability="available",
+        nationality="日本",
+        languages=[{"name": "日本語", "level": 5}, {"name": "英語", "level": 3}],
+        visa_status="",
+        desired_countries=["日本"],
     )
     base.update(kw)
     return SimpleNamespace(**base)
@@ -37,13 +45,35 @@ def make_talent(**kw):
 def test_perfect_candidate_scores_high():
     result = matching.score_talent(make_job(), make_talent())
     assert result.total > 90
-    assert len(result.components) == 6
+    assert len(result.components) == 7
 
 
 def test_missing_skill_reduces_score():
-    weak = make_talent(skills=[{"name": "溶接", "level": 2}])  # 鉄骨組立なし & レベル不足
+    weak = make_talent(skills=[{"name": "調理", "level": 2}])  # 仕込みなし & レベル不足
     strong = make_talent()
     assert matching.score_talent(make_job(), weak).total < matching.score_talent(make_job(), strong).total
+
+
+def test_missing_language_reduces_score():
+    no_lang = make_talent(languages=[{"name": "英語", "level": 5}])  # 日本語なし
+    with_lang = make_talent()
+    assert matching.score_talent(make_job(), no_lang).total < matching.score_talent(make_job(), with_lang).total
+
+
+def test_country_mismatch_lowers_country_component():
+    job = make_job(country="シンガポール")
+    talent = make_talent(desired_countries=["日本"])  # シンガポール希望なし
+    result = matching.score_talent(job, talent)
+    country_comp = next(c for c in result.components if c.key == "country")
+    assert country_comp.score < 0.5
+
+
+def test_language_fulfilled_full_score():
+    job = make_job(required_languages=[{"name": "英語", "min_level": 4}])
+    talent = make_talent(languages=[{"name": "英語", "level": 5}, {"name": "日本語", "level": 5}])
+    result = matching.score_talent(job, talent)
+    lang_comp = next(c for c in result.components if c.key == "language")
+    assert lang_comp.score == 1.0
 
 
 def test_salary_below_desired_penalized():
@@ -54,7 +84,7 @@ def test_salary_below_desired_penalized():
 
 
 def test_type_mismatch_lowers_type_component():
-    t = make_talent(type_os="職人")  # 求人は現場リーダー
+    t = make_talent(type_os="ホール")  # 求人は調理長
     result = matching.score_talent(make_job(), t)
     type_comp = next(c for c in result.components if c.key == "type")
     assert type_comp.score < 0.5
@@ -73,9 +103,9 @@ def test_unavailable_talent_excluded_from_ranking():
 
 def test_ranking_is_sorted_descending():
     talents = [
-        make_talent(id=1, skills=[{"name": "溶接", "level": 5}, {"name": "鉄骨組立", "level": 4}]),
-        make_talent(id=2, skills=[{"name": "溶接", "level": 2}]),
-        make_talent(id=3, skills=[{"name": "溶接", "level": 4}, {"name": "鉄骨組立", "level": 3}]),
+        make_talent(id=1, skills=[{"name": "調理", "level": 5}, {"name": "仕込み", "level": 4}]),
+        make_talent(id=2, skills=[{"name": "調理", "level": 2}]),
+        make_talent(id=3, skills=[{"name": "調理", "level": 4}, {"name": "仕込み", "level": 3}]),
     ]
     ranked = matching.rank_talents(make_job(), talents)
     scores = [r.total for r in ranked]
@@ -93,4 +123,4 @@ def test_breakdown_structure():
     assert "total" in breakdown
     assert "components" in breakdown
     keys = {c["key"] for c in breakdown["components"]}
-    assert keys == {"skill", "salary", "type", "work_style", "location", "availability"}
+    assert keys == {"skill", "language", "salary", "country", "type", "work_style", "availability"}

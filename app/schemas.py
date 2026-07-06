@@ -38,6 +38,11 @@ class SkillItem(BaseModel):
     level: int = Field(default=1, ge=1, le=5)
 
 
+class LanguageItem(BaseModel):
+    name: str
+    level: int = Field(default=1, ge=1, le=5)  # 5=ネイティブ/流暢
+
+
 class TalentBase(BaseModel):
     name: str
     kana: str = ""
@@ -50,6 +55,11 @@ class TalentBase(BaseModel):
     availability: str = "available"  # available / assigned / unavailable
     profile: str = ""
     tags: list[str] = Field(default_factory=list)
+    # 海外人材紹介向け
+    nationality: str = ""
+    languages: list[LanguageItem] = Field(default_factory=list)
+    visa_status: str = ""
+    desired_countries: list[str] = Field(default_factory=list)
 
 
 class TalentCreate(TalentBase):
@@ -71,6 +81,11 @@ class RequiredSkill(BaseModel):
     min_level: int = Field(default=1, ge=1, le=5)
 
 
+class RequiredLanguage(BaseModel):
+    name: str
+    min_level: int = Field(default=1, ge=1, le=5)
+
+
 class JobBase(BaseModel):
     client_id: int
     title: str
@@ -82,6 +97,11 @@ class JobBase(BaseModel):
     headcount: int = 1
     description: str = ""
     status: str = "open"
+    # 海外人材紹介向け
+    country: str = "日本"
+    required_languages: list[RequiredLanguage] = Field(default_factory=list)
+    visa_support: bool = False
+    currency: str = "JPY"
 
 
 class JobCreate(JobBase):

@@ -47,11 +47,16 @@ EXTRACTION_PROMPT = (
     '  "type_os": "職種(例: ホール, キッチン, 調理長, 店長, 副店長, バリスタ, 寿司職人, パティシエ, ソムリエ)",\n'
     '  "work_style": "onsite / online / both のいずれか(飲食店は基本 onsite)",\n'
     '  "location": "希望勤務地または居住地",\n'
+    '  "nationality": "国籍(不明なら空文字)",\n'
+    '  "languages": [{"name": "言語名(例: 日本語, 英語, 中国語)", "level": 1〜5の整数(5=ネイティブ)}],\n'
+    '  "visa_status": "在留資格・就労資格(例: 特定技能, 技術・人文知識・国際業務, 永住者, 要ビザサポート。不明なら空文字)",\n'
+    '  "desired_countries": ["希望勤務国・地域(例: 日本, シンガポール)"],\n'
     '  "profile": "経歴の要約(120字程度)"\n'
     "}\n"
     "スキルは接客・調理・仕込み・ドリンク・レジ・メニュー開発・原価管理・"
     "店舗管理・衛生管理など飲食店で使うものを想定し、"
     "レベルは記載が無ければ経験から1〜5で推定してください。"
+    "海外人材紹介のため、国籍・語学力・就労可能な資格・希望勤務国は特に丁寧に抽出してください。"
     "JSON 以外の文章・コードフェンスは出力しないでください。"
 )
 
@@ -127,6 +132,29 @@ def _normalize(fields: dict[str, Any]) -> dict[str, Any]:
     ws = str(fields.get("work_style") or "both").strip()
     out["work_style"] = ws if ws in {"onsite", "online", "both"} else "both"
     out["location"] = str(fields.get("location") or "").strip()
+
+    # --- 海外人材紹介向け ---
+    out["nationality"] = str(fields.get("nationality") or "").strip()
+
+    languages = []
+    for l in fields.get("languages") or []:
+        if isinstance(l, dict) and l.get("name"):
+            try:
+                level = int(l.get("level", 3))
+            except (TypeError, ValueError):
+                level = 3
+            languages.append({"name": str(l["name"]).strip(), "level": max(1, min(5, level))})
+        elif isinstance(l, str) and l.strip():
+            languages.append({"name": l.strip(), "level": 3})
+    out["languages"] = languages
+
+    out["visa_status"] = str(fields.get("visa_status") or "").strip()
+
+    countries = fields.get("desired_countries") or []
+    if isinstance(countries, str):
+        countries = re.split(r"[,、/／\s]+", countries)
+    out["desired_countries"] = [str(c).strip() for c in countries if str(c).strip()]
+
     out["profile"] = str(fields.get("profile") or "").strip()
     return out
 
@@ -185,6 +213,13 @@ _SKILL_VOCAB = [
     "衛生管理", "発注", "洗い場", "マネジメント",
 ]
 
+# 簡易辞書：対応言語
+_LANGUAGE_VOCAB = [
+    "日本語", "英語", "中国語", "韓国語", "ベトナム語", "ネパール語",
+    "タガログ語", "タイ語", "インドネシア語", "ミャンマー語", "フランス語",
+    "スペイン語", "ポルトガル語", "イタリア語",
+]
+
 
 def _heuristic_parse(text: str) -> dict[str, Any]:
     fields: dict[str, Any] = {}
@@ -221,6 +256,27 @@ def _heuristic_parse(text: str) -> dict[str, Any]:
     found = [s for s in _SKILL_VOCAB if s in text]
     if found:
         fields["skills"] = [{"name": s, "level": 3} for s in found]
+
+    # --- 海外人材紹介向けの簡易抽出 ---
+    m = re.search(r"国籍[:：\s]*([^\s／/,、\n]{2,12})", text)
+    if m:
+        fields["nationality"] = m.group(1).strip()
+
+    langs = [l for l in _LANGUAGE_VOCAB if l in text]
+    if langs:
+        fields["languages"] = [{"name": l, "level": 3} for l in langs]
+
+    m = re.search(
+        r"(特定技能|技術・人文知識・国際業務|技能|永住者|定住者|家族滞在|留学|技能実習|"
+        r"日本人の配偶者[等]?|就労ビザ|ワーキングホリデー|要ビザサポート)",
+        text,
+    )
+    if m:
+        fields["visa_status"] = m.group(1)
+
+    m = re.search(r"希望勤務国[:：\s]*([^\n]{2,40})", text)
+    if m:
+        fields["desired_countries"] = re.split(r"[,、/／\s]+", m.group(1).strip())
 
     # プロフィール: 全文の冒頭を要約代わりに
     summary = " ".join(lines)[:200]

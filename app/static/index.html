@@ -37,6 +37,41 @@
     <option value="ソムリエ"></option>
     <option value="キッチン補助"></option>
   </datalist>
+  <datalist id="countries">
+    <option value="日本"></option>
+    <option value="シンガポール"></option>
+    <option value="アメリカ"></option>
+    <option value="オーストラリア"></option>
+    <option value="香港"></option>
+    <option value="UAE"></option>
+    <option value="タイ"></option>
+    <option value="ベトナム"></option>
+    <option value="イギリス"></option>
+    <option value="フランス"></option>
+  </datalist>
+  <datalist id="nationalities">
+    <option value="日本"></option>
+    <option value="ベトナム"></option>
+    <option value="中国"></option>
+    <option value="ネパール"></option>
+    <option value="フィリピン"></option>
+    <option value="韓国"></option>
+    <option value="インドネシア"></option>
+    <option value="ミャンマー"></option>
+    <option value="台湾"></option>
+    <option value="タイ"></option>
+  </datalist>
+  <datalist id="visa-statuses">
+    <option value="特定技能（外食業）"></option>
+    <option value="技術・人文知識・国際業務"></option>
+    <option value="技能"></option>
+    <option value="永住者"></option>
+    <option value="定住者"></option>
+    <option value="日本人の配偶者等"></option>
+    <option value="留学"></option>
+    <option value="家族滞在"></option>
+    <option value="要ビザサポート"></option>
+  </datalist>
 
   <main>
     <!-- ========== マッチング ========== -->
@@ -85,6 +120,17 @@
               </label>
               <label>勤務地<input name="location" placeholder="東京" /></label>
               <label>募集人数<input name="headcount" type="number" value="1" /></label>
+            </div>
+            <div class="intl-section">
+              <div class="intl-title">🌐 海外求人向け項目</div>
+              <div class="row">
+                <label>勤務国・地域<input name="country" list="countries" value="日本" /></label>
+                <label>通貨<input name="currency" value="JPY" placeholder="JPY／SGD／USD" /></label>
+                <label class="checkbox"><input name="visa_support" type="checkbox" /> ビザサポートあり</label>
+              </div>
+              <label>必要言語（1行1件: 言語,最低レベル1-5）
+                <textarea name="required_languages" rows="2" placeholder="日本語,3&#10;英語,4"></textarea>
+              </label>
             </div>
             <label>説明<textarea name="description" rows="2"></textarea></label>
             <button class="primary" type="submit">登録</button>
@@ -140,6 +186,19 @@
                   <option value="assigned">勤務中</option>
                   <option value="unavailable">対応不可</option>
                 </select>
+              </label>
+            </div>
+            <div class="intl-section">
+              <div class="intl-title">🌐 海外人材向け項目</div>
+              <div class="row">
+                <label>国籍<input name="nationality" list="nationalities" placeholder="日本／ベトナム など" /></label>
+                <label>在留資格・就労資格<input name="visa_status" list="visa-statuses" placeholder="特定技能 など（任意）" /></label>
+              </div>
+              <label>対応言語（1行1件: 言語,レベル1-5 ／ 5=ネイティブ）
+                <textarea name="languages" rows="2" placeholder="日本語,5&#10;英語,3"></textarea>
+              </label>
+              <label>希望勤務国・地域（カンマ区切り）
+                <input name="desired_countries" list="countries" placeholder="日本, シンガポール" />
               </label>
             </div>
             <label>プロフィール<textarea name="profile" rows="2"></textarea></label>

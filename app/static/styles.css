@@ -135,6 +135,14 @@ button.ghost:hover { color: var(--danger); border-color: var(--danger); backgrou
 .resume-status.err { color: var(--danger); }
 .resume-status.loading { color: var(--muted); }
 
+/* 海外人材向けセクション */
+.intl-section {
+  background: linear-gradient(135deg, #eef7f3, #eef4ff);
+  border: 1px solid #d5e6df; border-radius: 12px; padding: 12px 14px; margin-bottom: 14px;
+}
+.intl-title { font-weight: 700; font-size: 13px; color: var(--accent-2); margin-bottom: 8px; }
+.intl-section label { margin-bottom: 10px; }
+
 .list { display: flex; flex-direction: column; gap: 10px; }
 .card {
   background: var(--panel-2); border: 1px solid var(--border);

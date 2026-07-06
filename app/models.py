@@ -62,11 +62,19 @@ class Talent(Base):
     experience_years: Mapped[float] = mapped_column(Float, default=0.0)
     # 希望待遇（年収・万円）
     desired_salary: Mapped[int] = mapped_column(Integer, default=0)
-    # タイプ(OS) — 人物タイプ / 適性の分類タグ
+    # タイプ(OS) — 職種の分類タグ（ホール/キッチン/店長 など）
     type_os: Mapped[str] = mapped_column(String(50), default="")
     # 勤務形態の希望: onsite / online / both
     work_style: Mapped[str] = mapped_column(String(20), default="both")
     location: Mapped[str] = mapped_column(String(100), default="")
+    # --- 海外人材紹介向け項目 ---
+    nationality: Mapped[str] = mapped_column(String(50), default="")  # 国籍
+    # 対応言語: [{"name": "英語", "level": 5}, ...]  level は 1-5(5=ネイティブ)
+    languages: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    # 在留資格 / 就労資格（例: 特定技能, 技術・人文知識・国際業務, 永住者, 要ビザサポート）
+    visa_status: Mapped[str] = mapped_column(String(100), default="")
+    # 希望勤務国・地域: ["日本", "シンガポール", ...]
+    desired_countries: Mapped[list[str]] = mapped_column(JSON, default=list)
     # available / assigned / unavailable
     availability: Mapped[str] = mapped_column(String(20), default="available")
     profile: Mapped[str] = mapped_column(Text, default="")
@@ -88,11 +96,17 @@ class Job(Base):
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     # 必須スキル: [{"name": "溶接", "weight": 3, "min_level": 3}, ...]
     required_skills: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
-    # 提示待遇（年収・万円）
+    # 提示待遇（年収・通貨は currency）
     offered_salary: Mapped[int] = mapped_column(Integer, default=0)
     type_os: Mapped[str] = mapped_column(String(50), default="")
     work_style: Mapped[str] = mapped_column(String(20), default="both")
     location: Mapped[str] = mapped_column(String(100), default="")
+    # --- 海外人材紹介向け項目 ---
+    country: Mapped[str] = mapped_column(String(50), default="日本")  # 勤務国・地域
+    # 必要言語: [{"name": "英語", "min_level": 4}, ...]
+    required_languages: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    visa_support: Mapped[bool] = mapped_column(default=False)  # ビザサポート有無
+    currency: Mapped[str] = mapped_column(String(10), default="JPY")  # 給与通貨
     headcount: Mapped[int] = mapped_column(Integer, default=1)
     description: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(20), default="open")  # open / closed
