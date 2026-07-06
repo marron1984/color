@@ -40,13 +40,10 @@ body {
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border);
 }
-.brand { display: flex; align-items: center; gap: 14px; }
-.logo {
-  font-size: 26px; color: #fff;
-  background: linear-gradient(135deg, var(--accent), #5b8bff);
-  width: 48px; height: 48px; border-radius: 13px;
-  display: grid; place-items: center;
-  box-shadow: 0 6px 16px rgba(47, 107, 255, .3);
+.brand { display: flex; align-items: center; gap: 16px; }
+.brand-logo {
+  height: 34px; width: auto; display: block;
+  padding-right: 16px; border-right: 1px solid var(--border);
 }
 .app-header h1 { margin: 0; font-size: 20px; letter-spacing: .01em; }
 .tagline { margin: 0; color: var(--muted); font-size: 13px; }
@@ -268,10 +265,11 @@ button.ghost:hover { color: var(--danger); border-color: var(--danger); backgrou
     position: sticky; top: 0; z-index: 20;
     padding-top: max(12px, env(safe-area-inset-top));
   }
-  .logo { width: 40px; height: 40px; font-size: 22px; border-radius: 11px; }
-  .app-header h1 { font-size: 16px; }
+  .brand { gap: 10px; min-width: 0; }
+  .brand-logo { height: 20px; padding-right: 10px; }
+  .app-header h1 { font-size: 14px; line-height: 1.3; }
   .tagline { display: none; }               /* 省スペース化 */
-  .badge { font-size: 11px; padding: 5px 10px; }
+  .badge { font-size: 10px; padding: 5px 9px; white-space: nowrap; flex-shrink: 0; }
 
   main {
     padding: 14px 12px;
