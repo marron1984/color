@@ -31,10 +31,10 @@ def _bootstrap() -> None:
     try:
         init_db()
         # デモデータの自動投入:
-        #   - 外部 DB（本番想定）には既定で投入しない（本番データを汚さないため）
-        #   - SEED_DEMO=1 で強制投入、SEED_DEMO=0 で抑止も可能
+        #   - 既定: DB が空のときだけ投入する（外部 DB でも）。既に登録があれば何もしない。
+        #   - SEED_DEMO=0 で無効化、=1 で明示的に有効化。
         seed_env = os.environ.get("SEED_DEMO")
-        do_seed = (seed_env == "1") if seed_env is not None else (not USING_EXTERNAL)
+        do_seed = seed_env != "0"
         if do_seed:
             from app.seed import seed_if_empty
 

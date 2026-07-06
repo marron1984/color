@@ -94,8 +94,8 @@ UI 右上のバッジで連携状態（`Claude 連携 ON` / `スコアリング�
 STAFFING_DATABASE_URL="postgres://user:pass@host/dbname?sslmode=require"
 ```
 
-- デモデータ: 外部 DB では本番データを汚さないため**自動投入しません**
-  （必要なら `SEED_DEMO=1` で投入、`python -m app.seed` でも投入できます）。
+- デモデータ: **DB が空のときだけ自動投入**します（外部 DB でも。既に登録があれば何もしません）。
+  投入したくない場合は環境変数 `SEED_DEMO=0` を設定してください。
 - ローカル開発では `./staffing.db` に保存され、再起動しても消えません。
 - libSQL/Turso 等でも `STAFFING_DATABASE_URL` を指定すれば利用できます。
 
