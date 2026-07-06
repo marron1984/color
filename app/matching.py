@@ -27,11 +27,11 @@ WEIGHTS: dict[str, float] = {
 
 # 観点の日本語ラベル（UI 表示用）。
 LABELS: dict[str, str] = {
-    "skill": "スペックスキル",
+    "skill": "スキル・経験",
     "salary": "待遇条件",
-    "type": "タイプ(OS)",
+    "type": "職種",
     "work_style": "勤務形態",
-    "location": "所在地",
+    "location": "勤務地",
     "availability": "稼働可否",
 }
 
@@ -166,7 +166,7 @@ def _location_score(job: Any, talent: Any) -> Component:
 def _availability_score(job: Any, talent: Any) -> Component:
     """稼働可否."""
     a = (talent.availability or "available").strip()
-    mapping = {"available": (1.0, "即稼働可"), "assigned": (0.2, "稼働中"), "unavailable": (0.0, "稼働不可")}
+    mapping = {"available": (1.0, "即勤務可"), "assigned": (0.2, "勤務中"), "unavailable": (0.0, "対応不可")}
     score, detail = mapping.get(a, (0.5, a))
     return Component("availability", LABELS["availability"], score, WEIGHTS["availability"], detail)
 

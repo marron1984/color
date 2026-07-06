@@ -13,8 +13,8 @@ from app import ai, matching, models, resume, schemas
 from app.database import get_db, init_db
 
 app = FastAPI(
-    title="人材紹介マッチングシステム",
-    description="企業ニーズに応じて登録人材を AI（スコアリング＋LLM）でピックアップする管理システム",
+    title="飲食店専門 人材マッチングシステム",
+    description="店舗ニーズに応じて飲食店スタッフを AI（スコアリング＋LLM）でピックアップする管理システム",
     version="0.1.0",
 )
 

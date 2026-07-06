@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>人材紹介マッチングシステム</title>
+  <title>飲食店専門 人材マッチングシステム</title>
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
   <header class="app-header">
     <div class="brand">
-      <span class="logo">◆</span>
+      <span class="logo">🍽</span>
       <div>
-        <h1>人材紹介マッチングシステム</h1>
-        <p class="tagline">企業ニーズに応じて登録人材を AI がピックアップ</p>
+        <h1>飲食店専門 人材マッチング</h1>
+        <p class="tagline">店舗ニーズに応じて ホール・キッチン・店長 などの人材を AI がピックアップ</p>
       </div>
     </div>
     <div id="llm-badge" class="badge badge-muted">AI: 確認中…</div>
@@ -21,9 +21,22 @@
   <nav class="tabs">
     <button class="tab active" data-tab="match">🎯 マッチング</button>
     <button class="tab" data-tab="jobs">📋 求人</button>
-    <button class="tab" data-tab="talents">👷 人材</button>
-    <button class="tab" data-tab="clients">🏢 クライアント</button>
+    <button class="tab" data-tab="talents">🧑‍🍳 人材</button>
+    <button class="tab" data-tab="clients">🏬 店舗</button>
   </nav>
+
+  <datalist id="positions">
+    <option value="ホール"></option>
+    <option value="キッチン"></option>
+    <option value="調理長"></option>
+    <option value="店長"></option>
+    <option value="副店長"></option>
+    <option value="バリスタ"></option>
+    <option value="寿司職人"></option>
+    <option value="パティシエ"></option>
+    <option value="ソムリエ"></option>
+    <option value="キッチン補助"></option>
+  </datalist>
 
   <main>
     <!-- ========== マッチング ========== -->
@@ -53,24 +66,24 @@
         <div class="panel">
           <h2>求人登録</h2>
           <form id="job-form">
-            <label>クライアント<select id="job-client" required></select></label>
-            <label>求人タイトル<input name="title" required placeholder="鉄骨溶接工（現場リーダー候補）" /></label>
+            <label>店舗<select id="job-client" required></select></label>
+            <label>求人タイトル<input name="title" required placeholder="ホールスタッフ（週末中心）" /></label>
             <label>必須スキル（1行1件: 名称,重み,最低レベル）
-              <textarea name="required_skills" rows="3" placeholder="溶接,3,4&#10;鉄骨組立,2,3"></textarea>
+              <textarea name="required_skills" rows="3" placeholder="ホール接客,3,3&#10;レジ,1,2"></textarea>
             </label>
             <div class="row">
               <label>提示年収(万円)<input name="offered_salary" type="number" value="0" /></label>
-              <label>タイプ(OS)<input name="type_os" placeholder="現場リーダー" /></label>
+              <label>職種<input name="type_os" list="positions" placeholder="ホール／キッチン／店長 など" /></label>
             </div>
             <div class="row">
               <label>勤務形態
                 <select name="work_style">
-                  <option value="onsite">実地</option>
+                  <option value="onsite">店舗勤務</option>
                   <option value="online">オンライン</option>
                   <option value="both">どちらも</option>
                 </select>
               </label>
-              <label>所在地<input name="location" placeholder="東京" /></label>
+              <label>勤務地<input name="location" placeholder="東京" /></label>
               <label>募集人数<input name="headcount" type="number" value="1" /></label>
             </div>
             <label>説明<textarea name="description" rows="2"></textarea></label>
@@ -101,31 +114,31 @@
           </div>
           <form id="talent-form">
             <div class="row">
-              <label>氏名<input name="name" required placeholder="田中 太郎" /></label>
-              <label>フリガナ<input name="kana" placeholder="タナカ タロウ" /></label>
+              <label>氏名<input name="name" required placeholder="佐藤 みなみ" /></label>
+              <label>フリガナ<input name="kana" placeholder="サトウ ミナミ" /></label>
             </div>
             <label>スキル（1行1件: 名称,レベル1-5）
-              <textarea name="skills" rows="3" placeholder="溶接,5&#10;鉄骨組立,4"></textarea>
+              <textarea name="skills" rows="3" placeholder="ホール接客,5&#10;調理,4"></textarea>
             </label>
             <div class="row">
               <label>経験年数<input name="experience_years" type="number" step="0.5" value="0" /></label>
               <label>希望年収(万円)<input name="desired_salary" type="number" value="0" /></label>
-              <label>タイプ(OS)<input name="type_os" placeholder="職人" /></label>
+              <label>職種<input name="type_os" list="positions" placeholder="ホール／キッチン／店長 など" /></label>
             </div>
             <div class="row">
               <label>勤務形態
                 <select name="work_style">
-                  <option value="onsite">実地</option>
+                  <option value="onsite">店舗勤務</option>
                   <option value="online">オンライン</option>
                   <option value="both">どちらも</option>
                 </select>
               </label>
-              <label>所在地<input name="location" placeholder="東京" /></label>
+              <label>希望勤務地<input name="location" placeholder="東京" /></label>
               <label>稼働状況
                 <select name="availability">
-                  <option value="available">即稼働可</option>
-                  <option value="assigned">稼働中</option>
-                  <option value="unavailable">稼働不可</option>
+                  <option value="available">即勤務可</option>
+                  <option value="assigned">勤務中</option>
+                  <option value="unavailable">対応不可</option>
                 </select>
               </label>
             </div>
@@ -140,13 +153,13 @@
       </div>
     </section>
 
-    <!-- ========== クライアント ========== -->
+    <!-- ========== 店舗 ========== -->
     <section id="tab-clients" class="tab-panel">
       <div class="grid-2">
         <div class="panel">
-          <h2>クライアント登録</h2>
+          <h2>店舗登録</h2>
           <form id="client-form">
-            <label>企業名<input name="name" required placeholder="株式会社ミナト建設" /></label>
+            <label>店舗名<input name="name" required placeholder="居酒屋 炭火屋 蔵" /></label>
             <div class="row">
               <label>区分
                 <select name="kind">
@@ -154,7 +167,7 @@
                   <option value="existing">既存顧客</option>
                 </select>
               </label>
-              <label>業種<input name="industry" placeholder="建設" /></label>
+              <label>業態<input name="industry" placeholder="居酒屋／カフェ／寿司 など" /></label>
             </div>
             <div class="row">
               <label>担当者<input name="contact_name" /></label>
@@ -166,7 +179,7 @@
           </form>
         </div>
         <div class="panel">
-          <h2>クライアント一覧</h2>
+          <h2>店舗一覧</h2>
           <div id="clients-list" class="list"></div>
         </div>
       </div>

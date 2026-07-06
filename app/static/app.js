@@ -22,8 +22,8 @@ function toast(msg, isErr = false) {
   setTimeout(() => (t.className = "toast"), 2600);
 }
 
-const WORK_STYLE_JA = { onsite: "実地", online: "オンライン", both: "どちらも" };
-const AVAIL_JA = { available: "即稼働可", assigned: "稼働中", unavailable: "稼働不可" };
+const WORK_STYLE_JA = { onsite: "店舗勤務", online: "オンライン", both: "どちらも" };
+const AVAIL_JA = { available: "即勤務可", assigned: "勤務中", unavailable: "対応不可" };
 const AVAIL_CLS = { available: "green", assigned: "warn", unavailable: "gray" };
 const KIND_JA = { new: "新規開拓", existing: "既存顧客" };
 
@@ -55,7 +55,7 @@ document.querySelectorAll(".tab").forEach(btn => {
 async function loadClients() {
   const clients = await api("/api/clients");
   const list = document.getElementById("clients-list");
-  list.innerHTML = clients.length ? "" : '<div class="empty">クライアント未登録</div>';
+  list.innerHTML = clients.length ? "" : '<div class="empty">店舗未登録</div>';
   for (const c of clients) {
     const el = document.createElement("div");
     el.className = "card";
@@ -70,7 +70,7 @@ async function loadClients() {
       <div class="chips"><span class="chip ${c.kind === "existing" ? "green" : ""}">${KIND_JA[c.kind] || c.kind}</span></div>
       ${c.notes ? `<div class="card-meta">${esc(c.notes)}</div>` : ""}`;
     el.querySelector("[data-del]").onclick = async () => {
-      if (!confirm("削除しますか？関連する求人も削除されます。")) return;
+      if (!confirm("この店舗を削除しますか？関連する求人も削除されます。")) return;
       await api(`/api/clients/${c.id}`, { method: "DELETE" });
       toast("削除しました"); refreshAll();
     };
@@ -86,7 +86,7 @@ document.getElementById("client-form").addEventListener("submit", async e => {
   const f = new FormData(e.target);
   try {
     await api("/api/clients", { method: "POST", body: JSON.stringify(Object.fromEntries(f)) });
-    e.target.reset(); toast("クライアントを登録しました"); loadClients();
+    e.target.reset(); toast("店舗を登録しました"); loadClients();
   } catch (err) { toast(err.message, true); }
 });
 
