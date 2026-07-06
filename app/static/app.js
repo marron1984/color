@@ -349,9 +349,39 @@ function renderMatches(candidates) {
         </div>
         <div class="reason">💡 ${esc(c.reason)}<span class="src">(${srcLabel})</span></div>
         <div class="bars">${bars}</div>
+        <div class="match-actions">
+          <button class="ghost" data-detail="${t.id}">個人情報・連絡先を表示</button>
+        </div>
+        ${personalInfoBlock(t)}
       </div>`;
+    const dbtn = el.querySelector("[data-detail]");
+    const dblock = el.querySelector(".contact-block");
+    dbtn.onclick = () => {
+      const hidden = dblock.hasAttribute("hidden");
+      dblock.toggleAttribute("hidden");
+      dbtn.textContent = hidden ? "個人情報・連絡先を隠す" : "個人情報・連絡先を表示";
+    };
     container.appendChild(el);
   });
+}
+
+// マッチ候補の個人情報＋連絡先ブロック（既定は非表示）
+function personalInfoBlock(t) {
+  const row = (k, v) => v ? `<div class="cb-row"><span class="cb-key">${k}</span><span>${esc(v)}</span></div>` : "";
+  const link = (k, href, v) => v ? `<div class="cb-row"><span class="cb-key">${k}</span><a href="${href}${esc(v)}">${esc(v)}</a></div>` : "";
+  const countries = (t.desired_countries || []).join("・");
+  const rows = [
+    row("フリガナ", t.kana),
+    row("希望年収", t.desired_salary ? `${t.desired_salary}万` : ""),
+    row("希望勤務地", t.location),
+    row("在留資格", t.visa_status),
+    countries ? row("希望勤務国", countries) : "",
+    link("電話", "tel:", t.phone),
+    link("メール", "mailto:", t.email),
+    row("その他", t.contact_note),
+    row("プロフィール", t.profile),
+  ].filter(Boolean).join("");
+  return `<div class="contact-block" hidden>${rows || '<div class="contact-empty">登録情報がありません</div>'}</div>`;
 }
 
 // ---------- 共通 ----------
