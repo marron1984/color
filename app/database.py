@@ -17,9 +17,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 # 外部 DB URL を探す環境変数（この順に優先）
+# サーバーレスでは非プーリング（直結）URL を優先する（pgbouncer と psycopg の
+# プリペアドステートメント衝突を避けるため）。
 _EXTERNAL_ENV_KEYS = (
     "STAFFING_DATABASE_URL",
-    "POSTGRES_URL_NON_POOLING",  # Vercel Postgres（非プーリング推奨）
+    "POSTGRES_URL_NON_POOLING",  # Vercel Postgres（非プーリング）
+    "DATABASE_URL_UNPOOLED",     # Neon ネイティブ連携（非プーリング）
     "POSTGRES_URL",
     "DATABASE_URL",
 )
