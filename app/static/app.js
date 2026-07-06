@@ -115,12 +115,13 @@ async function loadClients() {
       <div class="card-head">
         <div>
           <div class="card-title">${esc(c.name)}</div>
-          <div class="card-meta">${esc(c.industry || "")} ／ ${esc(c.contact_name || "-")} ／ ${esc(c.contact_email || "-")}</div>
+          <div class="card-meta">${esc(c.industry || "")} ／ ${esc(c.contact_name || "-")} ／ ${esc(c.phone || "-")}</div>
+          ${c.address ? `<div class="card-meta">📍 ${esc(c.address)}</div>` : ""}
         </div>
         <button class="ghost" data-del="${c.id}">削除</button>
       </div>
       <div class="chips"><span class="chip ${c.kind === "existing" ? "green" : ""}">${KIND_JA[c.kind] || c.kind}</span></div>
-      ${c.notes ? `<div class="card-meta">${esc(c.notes)}</div>` : ""}`;
+      ${c.notes ? `<div class="card-meta pre">${esc(c.notes)}</div>` : ""}`;
     el.querySelector("[data-del]").onclick = async () => {
       if (!confirm("この店舗を削除しますか？関連する求人も削除されます。")) return;
       await api(`/api/clients/${c.id}`, { method: "DELETE" });
@@ -140,6 +141,32 @@ document.getElementById("client-form").addEventListener("submit", async e => {
     await api("/api/clients", { method: "POST", body: JSON.stringify(Object.fromEntries(f)) });
     e.target.reset(); toast("店舗を登録しました"); loadClients();
   } catch (err) { toast(err.message, true); }
+});
+
+// 食べログから店舗情報を取得してフォームに反映
+document.getElementById("tabelog-btn").addEventListener("click", async () => {
+  const urlEl = document.getElementById("tabelog-url");
+  const status = document.getElementById("tabelog-status");
+  const url = (urlEl.value || "").trim();
+  if (!url) { toast("食べログの URL を入力してください", true); return; }
+  status.textContent = "取得中…"; status.className = "resume-status loading";
+  try {
+    const data = await api("/api/clients/fetch-tabelog", {
+      method: "POST", body: JSON.stringify({ url }),
+    });
+    const form = document.getElementById("client-form");
+    const set = (name, val) => { if (val && form.elements[name]) form.elements[name].value = val; };
+    set("name", data.fields.name);
+    set("industry", data.fields.industry);
+    set("address", data.fields.address);
+    set("phone", data.fields.phone);
+    set("notes", data.fields.notes);
+    status.textContent = "✓ 取得しました（内容をご確認ください）"; status.className = "resume-status";
+    toast("食べログから取得しました");
+  } catch (err) {
+    status.textContent = ""; status.className = "resume-status err";
+    toast(err.message, true);
+  }
 });
 
 // 連絡先ブロック（既定は非表示。ボタンで開閉）

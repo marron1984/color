@@ -57,6 +57,26 @@ def list_clients(db: Session = Depends(get_db)):
     return db.scalars(select(models.Client).order_by(models.Client.id.desc())).all()
 
 
+@app.post("/api/clients/fetch-tabelog")
+def fetch_tabelog(req: schemas.TabelogFetchRequest):
+    """食べログの店舗 URL から店舗情報を取得し、フォームの下書きを返す（保存はしない）。"""
+    from app import tabelog
+
+    try:
+        fields = tabelog.fetch_store(req.url)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    except Exception as exc:  # noqa: BLE001 - 取得失敗はまとめて 502 で通知
+        raise HTTPException(
+            502,
+            f"食べログから取得できませんでした（{type(exc).__name__}）。"
+            "URL やネットワーク環境をご確認ください。",
+        )
+    if not fields.get("name"):
+        raise HTTPException(422, "店舗情報を抽出できませんでした。URL をご確認ください。")
+    return {"fields": fields, "source": "tabelog"}
+
+
 @app.post("/api/clients", response_model=schemas.ClientOut, status_code=201)
 def create_client(payload: schemas.ClientCreate, db: Session = Depends(get_db)):
     client = models.Client(**payload.model_dump())

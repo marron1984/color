@@ -38,6 +38,7 @@ class Client(Base):
     # 新規開拓 / 既存顧客
     kind: Mapped[str] = mapped_column(String(20), default="new")
     industry: Mapped[str] = mapped_column(String(100), default="")
+    address: Mapped[str] = mapped_column(String(300), default="")
     contact_name: Mapped[str] = mapped_column(String(100), default="")
     contact_email: Mapped[str] = mapped_column(String(200), default="")
     phone: Mapped[str] = mapped_column(String(50), default="")

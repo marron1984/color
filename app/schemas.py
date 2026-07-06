@@ -14,10 +14,15 @@ class ClientBase(BaseModel):
     name: str
     kind: str = "new"  # new / existing
     industry: str = ""
+    address: str = ""
     contact_name: str = ""
     contact_email: str = ""
     phone: str = ""
     notes: str = ""
+
+
+class TabelogFetchRequest(BaseModel):
+    url: str
 
 
 class ClientCreate(ClientBase):

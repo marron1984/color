@@ -341,6 +341,15 @@
       <div class="grid-2">
         <div class="panel">
           <h2>店舗登録</h2>
+          <div class="fetch-box">
+            <div class="fetch-title">🔗 食べログから自動取得</div>
+            <div class="fetch-desc">店舗の食べログ URL を貼り付けると、店名・ジャンル・住所・電話を取得してフォームに反映します（内容は登録前に確認・修正できます）。</div>
+            <div class="fetch-row">
+              <input id="tabelog-url" type="url" placeholder="https://tabelog.com/tokyo/A0000/..." />
+              <button type="button" id="tabelog-btn" class="secondary">取得</button>
+            </div>
+            <span id="tabelog-status" class="resume-status"></span>
+          </div>
           <form id="client-form">
             <label>店舗名<input name="name" required placeholder="居酒屋 炭火屋 蔵" /></label>
             <div class="row">
@@ -352,6 +361,7 @@
               </label>
               <label>業態<input name="industry" placeholder="居酒屋／カフェ／寿司 など" /></label>
             </div>
+            <label>住所<input name="address" placeholder="東京都渋谷区…" /></label>
             <div class="row">
               <label>担当者<input name="contact_name" /></label>
               <label>メール<input name="contact_email" type="email" /></label>
