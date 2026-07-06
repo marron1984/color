@@ -6,8 +6,19 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-# 既定ではプロジェクト直下の staffing.db を使用。環境変数で上書き可能。
-DATABASE_URL = os.environ.get("STAFFING_DATABASE_URL", "sqlite:///./staffing.db")
+def _default_sqlite_url() -> str:
+    """既定の SQLite URL を決める.
+
+    Vercel / AWS Lambda などのサーバーレス環境ではプロジェクト直下が
+    読み取り専用のため、書き込み可能な /tmp を使う。それ以外はローカルの
+    staffing.db。永続 DB を使う場合は STAFFING_DATABASE_URL で上書きする。
+    """
+    if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        return "sqlite:////tmp/staffing.db"
+    return "sqlite:///./staffing.db"
+
+
+DATABASE_URL = os.environ.get("STAFFING_DATABASE_URL", _default_sqlite_url())
 
 # SQLite を FastAPI（複数スレッド）から使うため check_same_thread=False。
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}

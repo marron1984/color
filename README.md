@@ -32,7 +32,7 @@
 # 依存インストール
 pip install -r requirements.txt
 
-# デモデータ投入（クライアント3・人材7・求人3）
+# デモデータ投入（建設・製造・飲食：クライアント6・人材13・求人6）
 python -m app.seed
 
 # 起動
@@ -50,6 +50,33 @@ export ANTHROPIC_MODEL="claude-sonnet-5"   # 省略可
 ```
 
 UI 右上のバッジで連携状態（`Claude 連携 ON` / `スコアリングのみ`）を確認できます。
+
+## Vercel へのデプロイ
+
+このリポジトリは Vercel のサーバーレス (Python) で動作します。
+
+- `api/index.py` … Vercel 用の ASGI エントリポイント（`app.main:app` を公開）
+- `vercel.json` … 全リクエストを関数へルーティング＋静的ファイルを同梱
+
+リポジトリを Vercel に接続すればそのままビルド・デプロイされます。
+初回アクセス時にデモデータ（建設・製造・飲食）が自動投入されます。
+
+### ⚠️ データ永続化について（重要）
+
+サーバーレスではファイルシステムが読み取り専用のため、SQLite は書き込み可能な
+`/tmp` に置いています。`/tmp` は**インスタンスが再起動（コールドスタート）すると
+リセット**されるため、UI で登録したデータは永続しません（デモ用途向け）。
+
+**業務で継続利用（社内管理システム）する場合は、外部の永続 DB を推奨します。**
+`STAFFING_DATABASE_URL` を設定すれば SQLite 以外の DB に切り替えられます。
+
+```bash
+# 例: Vercel Postgres / Neon などの接続文字列を環境変数に設定
+STAFFING_DATABASE_URL="postgresql+psycopg://user:pass@host/dbname"
+```
+
+> Postgres 等を使う場合は対応ドライバ（例: `psycopg[binary]`）を
+> `requirements.txt` に追加してください。libSQL/Turso での永続化にも対応可能です。
 
 ## 使い方
 
@@ -99,17 +126,20 @@ python -m pytest -q
 ## プロジェクト構成
 
 ```
+api/
+  index.py      Vercel サーバーレス用エントリポイント
 app/
   main.py       FastAPI アプリ・REST エンドポイント・静的配信
   models.py     ORM モデル（Client / Talent / Job / Match）
   schemas.py    Pydantic 入出力スキーマ
   matching.py   スコアリング・マッチングエンジン
   ai.py         Claude API 推薦理由レイヤー（フォールバック付き）
-  seed.py       デモデータ投入
-  database.py   SQLite 接続
+  seed.py       デモデータ投入（建設・製造・飲食）
+  database.py   DB 接続（サーバーレスでは /tmp、STAFFING_DATABASE_URL で上書き可）
   static/       Web UI（index.html / app.js / styles.css）
 tests/
   test_matching.py  マッチングエンジンのテスト
+vercel.json     Vercel デプロイ設定
 ```
 
 ## 今後の拡張余地

@@ -21,9 +21,24 @@ app = FastAPI(
 STATIC_DIR = Path(__file__).parent / "static"
 
 
-@app.on_event("startup")
-def _startup() -> None:
-    init_db()
+def _bootstrap() -> None:
+    """テーブル作成とデモデータ投入.
+
+    サーバーレス(Vercel 等)では ASGI lifespan が実行されない場合があるため、
+    起動イベントではなくインポート時に実行する。失敗しても起動は継続する。
+    """
+    try:
+        init_db()
+        from app.seed import seed_if_empty
+
+        seed_if_empty()
+    except Exception as exc:  # noqa: BLE001 - 初期化失敗でもアプリは起動させる
+        import logging
+
+        logging.getLogger("uvicorn.error").warning("DB 初期化をスキップ: %s", exc)
+
+
+_bootstrap()
 
 
 # --------------------------------------------------------------------------- #
