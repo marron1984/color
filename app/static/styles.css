@@ -147,12 +147,35 @@ button.ghost:hover { color: var(--danger); border-color: var(--danger); backgrou
 .intl-title { font-weight: 700; font-size: 13px; color: var(--accent-2); margin-bottom: 8px; }
 .intl-section label { margin-bottom: 10px; }
 
+/* 連絡先セクション */
+.contact-section {
+  background: #f6f8fc; border: 1px solid var(--border); border-radius: 12px;
+  padding: 12px 14px; margin-bottom: 14px;
+}
+.contact-title { font-weight: 700; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.contact-section label { margin-bottom: 10px; }
+
+/* カード内の連絡先（既定は非表示。ボタンで開閉） */
+.contact-block {
+  margin-top: 10px; padding: 10px 12px; border-radius: 9px;
+  background: #f6f8fc; border: 1px dashed var(--border-strong);
+  font-size: 13px; display: grid; gap: 4px;
+}
+/* hidden 属性を確実に効かせる（display:grid が UA の [hidden] を上書きするため） */
+.contact-block[hidden] { display: none; }
+.contact-block .cb-row { display: flex; gap: 6px; }
+.contact-block .cb-key { color: var(--muted); min-width: 84px; }
+.contact-block a { color: var(--accent); text-decoration: none; word-break: break-all; }
+.contact-block a:hover { text-decoration: underline; }
+.contact-empty { color: var(--muted); font-style: italic; }
+
 .list { display: flex; flex-direction: column; gap: 10px; }
 .card {
   background: var(--panel-2); border: 1px solid var(--border);
   border-radius: 11px; padding: 12px 14px;
 }
 .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.card-actions { display: flex; gap: 6px; flex-shrink: 0; }
 .card-title { font-weight: 700; }
 .card-meta { color: var(--muted); font-size: 12px; margin-top: 3px; }
 .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }

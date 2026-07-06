@@ -205,6 +205,16 @@
                 <input name="desired_countries" list="countries" placeholder="日本, シンガポール" />
               </label>
             </div>
+            <div class="contact-section">
+              <div class="contact-title">📞 連絡先（一覧には表示されません）</div>
+              <div class="row">
+                <label>電話番号<input name="phone" type="tel" placeholder="090-1234-5678 / +65 8123 4567" /></label>
+                <label>メール<input name="email" type="email" placeholder="name@example.com" /></label>
+              </div>
+              <label>その他連絡手段（LINE / WeChat / WhatsApp ID、緊急連絡先 など）
+                <input name="contact_note" placeholder="LINE: sample_id ／ WeChat: sample" />
+              </label>
+            </div>
             <label>プロフィール<textarea name="profile" rows="2"></textarea></label>
             <button class="primary" type="submit">登録</button>
           </form>

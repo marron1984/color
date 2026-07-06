@@ -51,6 +51,9 @@ EXTRACTION_PROMPT = (
     '  "languages": [{"name": "言語名(例: 日本語, 英語, 中国語)", "level": 1〜5の整数(5=ネイティブ)}],\n'
     '  "visa_status": "在留資格・就労資格(例: 特定技能, 技術・人文知識・国際業務, 永住者, 要ビザサポート。不明なら空文字)",\n'
     '  "desired_countries": ["希望勤務国・地域(例: 日本, シンガポール)"],\n'
+    '  "phone": "電話番号(不明なら空文字)",\n'
+    '  "email": "メールアドレス(不明なら空文字)",\n'
+    '  "contact_note": "その他連絡手段(LINE/WeChat/WhatsApp ID 等。不明なら空文字)",\n'
     '  "profile": "経歴の要約(120字程度)"\n'
     "}\n"
     "スキルは接客・調理・仕込み・ドリンク・レジ・メニュー開発・原価管理・"
@@ -154,6 +157,11 @@ def _normalize(fields: dict[str, Any]) -> dict[str, Any]:
     if isinstance(countries, str):
         countries = re.split(r"[,、/／\s]+", countries)
     out["desired_countries"] = [str(c).strip() for c in countries if str(c).strip()]
+
+    # --- 連絡先 ---
+    out["phone"] = str(fields.get("phone") or "").strip()
+    out["email"] = str(fields.get("email") or "").strip()
+    out["contact_note"] = str(fields.get("contact_note") or "").strip()
 
     out["profile"] = str(fields.get("profile") or "").strip()
     return out
@@ -277,6 +285,17 @@ def _heuristic_parse(text: str) -> dict[str, Any]:
     m = re.search(r"希望勤務国[:：\s]*([^\n]{2,40})", text)
     if m:
         fields["desired_countries"] = re.split(r"[,、/／\s]+", m.group(1).strip())
+
+    # --- 連絡先 ---
+    m = re.search(r"[\w.+-]+@[\w-]+\.[\w.-]+", text)
+    if m:
+        fields["email"] = m.group(0)
+    m = re.search(r"(?:\+\d[\d\-\s()]{8,}|0\d{1,4}[-\s(]?\d{1,4}[-\s)]?\d{3,4})", text)
+    if m:
+        fields["phone"] = m.group(0).strip()
+    m = re.search(r"(?:LINE|WeChat|WhatsApp|微信)[:：\s]*([^\s\n、,]{2,40})", text, re.IGNORECASE)
+    if m:
+        fields["contact_note"] = m.group(0).strip()
 
     # プロフィール: 全文の冒頭を要約代わりに
     summary = " ".join(lines)[:200]

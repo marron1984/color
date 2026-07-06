@@ -108,6 +108,16 @@ document.getElementById("client-form").addEventListener("submit", async e => {
   } catch (err) { toast(err.message, true); }
 });
 
+// 連絡先ブロック（既定は非表示。ボタンで開閉）
+function contactBlock(t) {
+  const rows = [];
+  if (t.phone) rows.push(`<div class="cb-row"><span class="cb-key">電話</span><a href="tel:${esc(t.phone)}">${esc(t.phone)}</a></div>`);
+  if (t.email) rows.push(`<div class="cb-row"><span class="cb-key">メール</span><a href="mailto:${esc(t.email)}">${esc(t.email)}</a></div>`);
+  if (t.contact_note) rows.push(`<div class="cb-row"><span class="cb-key">その他</span><span>${esc(t.contact_note)}</span></div>`);
+  const inner = rows.length ? rows.join("") : `<div class="contact-empty">連絡先は未登録です</div>`;
+  return `<div class="contact-block" hidden>${inner}</div>`;
+}
+
 // ---------- 人材 ----------
 async function loadTalents() {
   const talents = await api("/api/talents");
@@ -131,15 +141,26 @@ async function loadTalents() {
           <div class="card-meta">経験${t.experience_years}年 ／ 希望${t.desired_salary}万 ／ ${esc(t.type_os || "-")} ／ ${esc(t.location || "-")} ／ ${WORK_STYLE_JA[t.work_style] || t.work_style}</div>
           ${natVisa ? `<div class="card-meta">${natVisa}</div>` : ""}
         </div>
-        <button class="ghost" data-del="${t.id}">削除</button>
+        <div class="card-actions">
+          <button class="ghost" data-contact="${t.id}">連絡先</button>
+          <button class="ghost" data-del="${t.id}">削除</button>
+        </div>
       </div>
       <div class="chips">${skills}${langs}<span class="chip ${AVAIL_CLS[t.availability]}">${AVAIL_JA[t.availability]}</span></div>
       ${countries}
-      ${t.profile ? `<div class="card-meta">${esc(t.profile)}</div>` : ""}`;
+      ${t.profile ? `<div class="card-meta">${esc(t.profile)}</div>` : ""}
+      ${contactBlock(t)}`;
     el.querySelector("[data-del]").onclick = async () => {
       if (!confirm("削除しますか？")) return;
       await api(`/api/talents/${t.id}`, { method: "DELETE" });
       toast("削除しました"); loadTalents();
+    };
+    const cbtn = el.querySelector("[data-contact]");
+    const cblock = el.querySelector(".contact-block");
+    cbtn.onclick = () => {
+      const hidden = cblock.hasAttribute("hidden");
+      cblock.toggleAttribute("hidden");
+      cbtn.textContent = hidden ? "連絡先を隠す" : "連絡先";
     };
     list.appendChild(el);
   }
@@ -174,6 +195,10 @@ function fillTalentForm(fields) {
   if (Array.isArray(fields.desired_countries) && fields.desired_countries.length) {
     form.elements["desired_countries"].value = fields.desired_countries.join(", ");
   }
+  // 連絡先
+  set("phone", fields.phone);
+  set("email", fields.email);
+  set("contact_note", fields.contact_note);
   set("profile", fields.profile);
 }
 

@@ -60,6 +60,10 @@ class TalentBase(BaseModel):
     languages: list[LanguageItem] = Field(default_factory=list)
     visa_status: str = ""
     desired_countries: list[str] = Field(default_factory=list)
+    # 連絡先（保有するが一覧には表示しない）
+    phone: str = ""
+    email: str = ""
+    contact_note: str = ""
 
 
 class TalentCreate(TalentBase):

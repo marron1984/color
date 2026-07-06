@@ -47,6 +47,7 @@ TALENTS = [
          nationality="日本",
          languages=[{"name": "日本語", "level": 5}, {"name": "英語", "level": 3}],
          visa_status="", desired_countries=["日本", "シンガポール"],
+         phone="090-1111-2222", email="minami.sato@example.com", contact_note="LINE: minami_s",
          profile="居酒屋・ダイニングでのホール経験6年。ピーク時のオペレーションが得意。"),
     dict(name="木村 大輔", kana="キムラ ダイスケ",
          skills=[{"name": "調理", "level": 5}, {"name": "仕込み", "level": 5},
@@ -102,6 +103,7 @@ TALENTS = [
          nationality="日本",
          languages=[{"name": "日本語", "level": 5}, {"name": "英語", "level": 3}],
          visa_status="", desired_countries=["日本", "アメリカ", "シンガポール", "UAE"],
+         phone="090-3333-4444", email="juichi.nakagawa@example.com", contact_note="緊急連絡先: 03-1234-5678",
          profile="老舗寿司店で18年。カウンターでの握り・接客に定評。海外店舗にも意欲。"),
     dict(name="高橋 舞", kana="タカハシ マイ",
          skills=[{"name": "製菓", "level": 5}, {"name": "パティシエ", "level": 5},
@@ -151,6 +153,7 @@ TALENTS = [
          languages=[{"name": "ベトナム語", "level": 5}, {"name": "日本語", "level": 3},
                     {"name": "英語", "level": 3}],
          visa_status="特定技能（外食業）", desired_countries=["日本"],
+         phone="080-5555-6666", email="minh.nguyen@example.com", contact_note="WhatsApp: +84 90 123 4567",
          profile="ベトナム出身。日本の居酒屋で3年勤務。特定技能ビザ保有で外食業に就労可能。"),
     dict(name="リー・ウェイ", kana="リー ウェイ",
          skills=[{"name": "ホール接客", "level": 4}, {"name": "店舗管理", "level": 3},
@@ -161,6 +164,7 @@ TALENTS = [
          languages=[{"name": "中国語", "level": 5}, {"name": "日本語", "level": 4},
                     {"name": "英語", "level": 4}],
          visa_status="技術・人文知識・国際業務", desired_countries=["日本", "シンガポール"],
+         phone="080-7777-8888", email="wei.li@example.com", contact_note="WeChat: liwei_88",
          profile="中国出身。インバウンド対応に強い店長候補。中・日・英のトリリンガル。"),
 ]
 

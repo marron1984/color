@@ -79,6 +79,11 @@ class Talent(Base):
     availability: Mapped[str] = mapped_column(String(20), default="available")
     profile: Mapped[str] = mapped_column(Text, default="")
     tags: Mapped[list[str]] = mapped_column(JSON, default=list)
+    # 連絡先（人材情報として保有するが、一覧には表示しない）
+    phone: Mapped[str] = mapped_column(String(50), default="")
+    email: Mapped[str] = mapped_column(String(200), default="")
+    # その他連絡手段（LINE / WeChat / WhatsApp ID、緊急連絡先など）
+    contact_note: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
 
     matches: Mapped[list["Match"]] = relationship(
