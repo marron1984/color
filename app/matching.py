@@ -1,14 +1,15 @@
 """スコアリング・マッチングエンジン.
 
 求人票 (Job) に対して登録人材 (Talent) の適合度を 0-100 で算出する。
-PDF「マッチング業務」の観点に対応:
-  - スペックスキル   -> skill
-  - 待遇条件         -> salary
-  - タイプ(OS)       -> type
-  - 面接調整/勤務形態 -> work_style
-  - （所在地）        -> location
-  - （稼働可否）      -> availability
-LLM を使わなくても単体で動作する、決定論的なアルゴリズム。
+7 観点（スキル・経験 / 対応言語 / 待遇条件 / 勤務国 / 職種 / 勤務形態 / 稼働可否）
+を重み付き合算する、決定論的で説明可能なアルゴリズム。
+
+精度向上のための工夫:
+  - スキル: 完全一致に加え、関連スキル（近縁）を割り引いて部分評価
+  - スキル: 最低レベル超過分を加点し、習熟度の高い人材を差別化
+  - 経験年数をスキル観点に合算（ラベル「スキル・経験」に対応）
+  - 職種: 近縁の職種（例: 店長↔副店長、調理長↔キッチン）を部分評価
+LLM を使わなくても単体で動作する。
 """
 from __future__ import annotations
 
@@ -37,6 +38,78 @@ LABELS: dict[str, str] = {
     "work_style": "勤務形態",
     "availability": "稼働可否",
 }
+
+# 関連スキル群: 必須スキルが完全一致しなくても、同じ群のスキルがあれば
+# 一定割合（RELATED_DISCOUNT）で部分的に評価する。飲食店の実務に即した近縁。
+SKILL_FAMILIES: list[set[str]] = [
+    {"接客", "ホール接客", "配膳", "レジ", "ドリンク", "多言語接客"},
+    {"調理", "仕込み", "焼き場", "揚げ場", "盛り付け", "衛生管理"},
+    {"店舗管理", "シフト管理", "在庫管理", "原価管理", "発注", "メニュー開発"},
+    {"寿司握り", "魚さばき", "仕込み"},
+    {"製菓", "パティシエ", "盛り付け"},
+    {"ソムリエ", "ワイン", "ドリンク"},
+    {"バリスタ", "ラテアート", "ドリンク"},
+]
+RELATED_DISCOUNT = 0.6  # 関連スキルは実効レベルを 60% に割り引く
+
+# 経験年数を満点扱いする年数（これ以上で経験факターが 1.0）。
+EXPERIENCE_FULL_YEARS = 8.0
+# スキル観点における スキル一致 と 経験 の配合比。
+SKILL_MATCH_RATIO = 0.9
+EXPERIENCE_RATIO = 0.1
+
+# 近縁の職種（同じ family 内は部分点）。
+ROLE_FAMILIES: dict[str, set[str]] = {
+    "management": {"店長", "副店長", "店舗管理", "マネージャー", "マネジャー", "SV", "エリアマネージャー"},
+    "hall": {"ホール", "接客", "サービス", "ホールリーダー", "フロア"},
+    "kitchen": {"キッチン", "調理", "調理長", "キッチン補助", "調理補助", "シェフ", "料理長"},
+}
+ROLE_FAMILY_SCORE = 0.6  # 同じ職種 family（別名称）の一致度
+
+
+def _related_members(skill_name: str) -> set[str]:
+    members: set[str] = set()
+    for fam in SKILL_FAMILIES:
+        if skill_name in fam:
+            members |= fam
+    members.discard(skill_name)
+    return members
+
+
+def _effective_level(req_name: str, talent_skills: dict[str, int]) -> tuple[float, str]:
+    """必須スキルに対する実効レベルと種別(exact/related/none)を返す."""
+    if req_name in talent_skills:
+        return float(talent_skills[req_name]), "exact"
+    related = _related_members(req_name)
+    best = 0
+    for name, lv in talent_skills.items():
+        if name in related and lv > best:
+            best = lv
+    if best:
+        return best * RELATED_DISCOUNT, "related"
+    return 0.0, "none"
+
+
+def _level_strength(effective_level: float, min_level: int) -> float:
+    """実効レベルの充足度を 0-1 で返す.
+
+    - 最低レベル未満: 比例（0.5 を上限係数として厳しめ）
+    - 最低レベル以上: 0.8 を基準に、超過分で 1.0 まで加点（習熟度を差別化）
+    """
+    m = max(1, min_level)
+    L = min(5.0, effective_level)
+    if L >= m:
+        if m >= 5:
+            return 1.0
+        return 0.8 + 0.2 * ((L - m) / (5 - m))
+    return 0.5 * (L / m)
+
+
+def _role_family(name: str) -> str | None:
+    for fam, members in ROLE_FAMILIES.items():
+        if name in members:
+            return fam
+    return None
 
 
 @dataclass
@@ -80,36 +153,54 @@ class MatchResult:
 
 
 def _skill_score(job: Any, talent: Any) -> Component:
-    """必須スキルのカバー率とレベル充足度を評価."""
+    """必須スキルの充足度（関連スキル・習熟度差を考慮）と経験年数を評価.
+
+    - 完全一致に加え、関連スキル（SKILL_FAMILIES）を割り引いて部分評価
+    - 最低レベルを満たすだけでなく、超過した習熟度を加点して差別化
+    - 経験年数を EXPERIENCE_RATIO の比率で合算（ラベル「スキル・経験」に対応）
+    """
+    talent_skills = {s.get("name"): int(s.get("level", 0)) for s in (talent.skills or [])}
+    experience = float(getattr(talent, "experience_years", 0) or 0)
+    exp_factor = min(1.0, experience / EXPERIENCE_FULL_YEARS) if EXPERIENCE_FULL_YEARS else 0.0
+
     required = job.required_skills or []
     if not required:
-        return Component("skill", LABELS["skill"], 1.0, WEIGHTS["skill"], "必須スキル指定なし")
+        # 必須スキル指定なしでも経験は評価に反映
+        score = SKILL_MATCH_RATIO * 1.0 + EXPERIENCE_RATIO * exp_factor
+        return Component("skill", LABELS["skill"], score, WEIGHTS["skill"],
+                         f"必須スキル指定なし / 経験{experience:g}年")
 
-    talent_skills = {s.get("name"): int(s.get("level", 0)) for s in (talent.skills or [])}
     total_weight = 0.0
     got_weight = 0.0
     covered: list[str] = []
+    related: list[str] = []
     missing: list[str] = []
     for req in required:
         name = req.get("name")
         weight = float(req.get("weight", 1) or 1)
         min_level = int(req.get("min_level", 1) or 1)
         total_weight += weight
-        have = talent_skills.get(name)
-        if have is None:
+        eff, kind = _effective_level(name, talent_skills)
+        strength = _level_strength(eff, min_level)
+        got_weight += weight * strength
+        if kind == "exact":
+            covered.append(f"{name}(Lv{int(talent_skills[name])})")
+        elif kind == "related":
+            related.append(f"{name}(関連)")
+        else:
             missing.append(name)
-            continue
-        # レベル充足度: min_level 以上で満点、未満は比例。
-        ratio = 1.0 if have >= min_level else max(0.0, have / max(min_level, 1))
-        got_weight += weight * ratio
-        covered.append(f"{name}(Lv{have})")
 
-    score = got_weight / total_weight if total_weight else 1.0
+    skill_match = got_weight / total_weight if total_weight else 1.0
+    score = SKILL_MATCH_RATIO * skill_match + EXPERIENCE_RATIO * exp_factor
+
     detail_parts = []
     if covered:
         detail_parts.append("充足: " + ", ".join(covered))
+    if related:
+        detail_parts.append("近縁: " + ", ".join(related))
     if missing:
         detail_parts.append("不足: " + ", ".join(missing))
+    detail_parts.append(f"経験{experience:g}年")
     return Component("skill", LABELS["skill"], score, WEIGHTS["skill"], " / ".join(detail_parts))
 
 
@@ -191,13 +282,17 @@ def _salary_score(job: Any, talent: Any) -> Component:
 
 
 def _type_score(job: Any, talent: Any) -> Component:
-    """タイプ(OS) の一致."""
+    """職種の一致（近縁の職種は部分点）."""
     j = (job.type_os or "").strip()
     t = (talent.type_os or "").strip()
     if not j or not t:
-        return Component("type", LABELS["type"], 0.6, WEIGHTS["type"], "タイプ未設定")
+        return Component("type", LABELS["type"], 0.6, WEIGHTS["type"], "職種未設定")
     if j == t:
         return Component("type", LABELS["type"], 1.0, WEIGHTS["type"], f"一致: {j}")
+    fj, ft = _role_family(j), _role_family(t)
+    if fj and fj == ft:
+        return Component("type", LABELS["type"], ROLE_FAMILY_SCORE, WEIGHTS["type"],
+                         f"近縁: 求人{j} / 人材{t}")
     return Component("type", LABELS["type"], 0.3, WEIGHTS["type"], f"求人{j} / 人材{t}")
 
 

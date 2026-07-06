@@ -28,6 +28,7 @@ def make_talent(**kw):
     base = dict(
         id=1,
         skills=[{"name": "調理", "level": 5}, {"name": "仕込み", "level": 4}],
+        experience_years=8,
         desired_salary=450,
         type_os="調理長",
         work_style="onsite",
@@ -124,3 +125,48 @@ def test_breakdown_structure():
     assert "components" in breakdown
     keys = {c["key"] for c in breakdown["components"]}
     assert keys == {"skill", "language", "salary", "country", "type", "work_style", "availability"}
+
+
+# --- 精度改善のテスト ---
+def _skill_comp(job, talent):
+    r = matching.score_talent(job, talent)
+    return next(c for c in r.components if c.key == "skill")
+
+
+def test_experience_increases_skill_score():
+    veteran = make_talent(experience_years=15)
+    rookie = make_talent(experience_years=0)
+    assert _skill_comp(make_job(), veteran).score > _skill_comp(make_job(), rookie).score
+
+
+def test_higher_level_scores_higher_than_minimum():
+    job = make_job(required_skills=[{"name": "調理", "weight": 1, "min_level": 3}])
+    expert = make_talent(skills=[{"name": "調理", "level": 5}], experience_years=8)
+    just_ok = make_talent(skills=[{"name": "調理", "level": 3}], experience_years=8)
+    assert _skill_comp(job, expert).score > _skill_comp(job, just_ok).score
+
+
+def test_related_skill_gives_partial_credit():
+    job = make_job(required_skills=[{"name": "仕込み", "weight": 1, "min_level": 3}])
+    # 「仕込み」は無いが近縁の「調理」を持つ人材 vs 全く無関係な人材
+    related = make_talent(skills=[{"name": "調理", "level": 5}])
+    unrelated = make_talent(skills=[{"name": "バリスタ", "level": 5}])
+    s_related = _skill_comp(job, related).score
+    s_unrelated = _skill_comp(job, unrelated).score
+    assert s_related > s_unrelated
+    # 完全一致にはやや劣る
+    exact = make_talent(skills=[{"name": "仕込み", "level": 5}])
+    assert _skill_comp(job, exact).score > s_related
+
+
+def test_related_role_scores_between_exact_and_unrelated():
+    job = make_job(type_os="店長")
+    exact = make_talent(type_os="店長")
+    related = make_talent(type_os="副店長")     # 同じ management family
+    unrelated = make_talent(type_os="寿司職人")
+
+    def type_score(t):
+        return next(c for c in matching.score_talent(job, t).components if c.key == "type").score
+
+    assert type_score(exact) == 1.0
+    assert type_score(unrelated) < type_score(related) < type_score(exact)
