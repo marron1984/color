@@ -98,6 +98,18 @@ def create_client(payload: schemas.ClientCreate, db: Session = Depends(get_db)):
     return client
 
 
+@app.put("/api/clients/{client_id}", response_model=schemas.ClientOut)
+def update_client(client_id: int, payload: schemas.ClientCreate, db: Session = Depends(get_db)):
+    client = db.get(models.Client, client_id)
+    if not client:
+        raise HTTPException(404, "店舗が見つかりません")
+    for key, value in payload.model_dump().items():
+        setattr(client, key, value)
+    db.commit()
+    db.refresh(client)
+    return client
+
+
 @app.delete("/api/clients/{client_id}", status_code=204)
 def delete_client(client_id: int, db: Session = Depends(get_db)):
     client = db.get(models.Client, client_id)
@@ -151,6 +163,18 @@ def get_talent(talent_id: int, db: Session = Depends(get_db)):
     return talent
 
 
+@app.put("/api/talents/{talent_id}", response_model=schemas.TalentOut)
+def update_talent(talent_id: int, payload: schemas.TalentCreate, db: Session = Depends(get_db)):
+    talent = db.get(models.Talent, talent_id)
+    if not talent:
+        raise HTTPException(404, "人材が見つかりません")
+    for key, value in payload.model_dump().items():
+        setattr(talent, key, value)
+    db.commit()
+    db.refresh(talent)
+    return talent
+
+
 @app.delete("/api/talents/{talent_id}", status_code=204)
 def delete_talent(talent_id: int, db: Session = Depends(get_db)):
     talent = db.get(models.Talent, talent_id)
@@ -191,6 +215,20 @@ def get_job(job_id: int, db: Session = Depends(get_db)):
     job = db.get(models.Job, job_id)
     if not job:
         raise HTTPException(404, "求人が見つかりません")
+    return _job_out(job)
+
+
+@app.put("/api/jobs/{job_id}", response_model=schemas.JobOut)
+def update_job(job_id: int, payload: schemas.JobCreate, db: Session = Depends(get_db)):
+    job = db.get(models.Job, job_id)
+    if not job:
+        raise HTTPException(404, "求人が見つかりません")
+    if not db.get(models.Client, payload.client_id):
+        raise HTTPException(400, "指定された店舗が存在しません")
+    for key, value in payload.model_dump().items():
+        setattr(job, key, value)
+    db.commit()
+    db.refresh(job)
     return _job_out(job)
 
 

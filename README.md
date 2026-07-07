@@ -123,6 +123,9 @@ STAFFING_DATABASE_URL="postgres://user:pass@host/dbname?sslmode=require"
 3. **求人**タブで求人票を登録
    - 必須スキルは「スキル名＋重要度（高/中/低）＋最低レベル」、必要言語は「言語＋最低レベル」を選んで「＋追加」。
 4. **マッチング**タブで求人を選び「ピックアップ実行」→ 適合度順に候補が表示されます
+   - 求人カードの「🎯 この求人でマッチング」からワンクリックで実行することもできます。
+
+各カードの「編集」ボタンで登録済みの店舗・人材・求人を修正できます（フォームが編集モードになり「更新」で保存、「キャンセル」で中止）。
 
 ## マッチングの仕組み
 
@@ -167,9 +170,9 @@ STAFFING_DATABASE_URL="postgres://user:pass@host/dbname?sslmode=require"
 | メソッド | パス | 説明 |
 |---|---|---|
 | GET | `/api/health` | 稼働状態・LLM 連携有無 |
-| GET/POST/DELETE | `/api/clients` | クライアント管理 |
-| GET/POST/DELETE | `/api/talents` | 人材管理 |
-| GET/POST/DELETE | `/api/jobs` | 求人管理 |
+| GET/POST/PUT/DELETE | `/api/clients` | 店舗管理（PUT で更新） |
+| GET/POST/PUT/DELETE | `/api/talents` | 人材管理（PUT で更新） |
+| GET/POST/PUT/DELETE | `/api/jobs` | 求人管理（PUT で更新） |
 | POST | `/api/jobs/{id}/match` | **AI マッチング実行**（`top_n` / `use_llm` / `persist`） |
 | POST | `/api/talents/parse-resume` | **履歴書アップロード**→フォーム下書きを返す（保存はしない） |
 | GET | `/api/jobs/{id}/matches` | 保存済みマッチング一覧 |

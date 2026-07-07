@@ -94,13 +94,42 @@ const B = {
 };
 
 // ---------- タブ切替 ----------
+function showTab(name) {
+  document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  const panel = document.getElementById("tab-" + name);
+  if (panel) panel.classList.add("active");
+}
 document.querySelectorAll(".tab").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
-    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-    btn.classList.add("active");
-    document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
-  });
+  btn.addEventListener("click", () => showTab(btn.dataset.tab));
+});
+
+// ---------- 編集モード ----------
+const editState = { client: null, talent: null, job: null };
+
+function setEditMode(kind, id, name) {
+  editState[kind] = id;
+  const form = document.getElementById(kind + "-form");
+  const submit = form.querySelector('button[type="submit"]');
+  if (submit) submit.textContent = id ? "更新" : "登録";
+  const banner = document.getElementById(kind + "-edit");
+  if (banner) {
+    banner.hidden = !id;
+    const nm = banner.querySelector(".edit-name");
+    if (nm) nm.textContent = name || "";
+  }
+}
+
+function clearForm(kind) {
+  const form = document.getElementById(kind + "-form");
+  form.reset();
+  if (kind === "talent") { B.talentSkills.clear(); B.talentLangs.clear(); B.talentCountries.clear(); }
+  if (kind === "job") { B.jobSkills.clear(); B.jobLangs.clear(); }
+  setEditMode(kind, null);
+}
+
+document.querySelectorAll("[data-cancel]").forEach(btn => {
+  btn.addEventListener("click", () => clearForm(btn.dataset.cancel));
 });
 
 // ---------- クライアント ----------
@@ -118,10 +147,14 @@ async function loadClients() {
           <div class="card-meta">${esc(c.industry || "")} ／ ${esc(c.contact_name || "-")} ／ ${esc(c.phone || "-")}</div>
           ${c.address ? `<div class="card-meta">📍 ${esc(c.address)}</div>` : ""}
         </div>
-        <button class="ghost" data-del="${c.id}">削除</button>
+        <div class="card-actions">
+          <button class="ghost" data-edit="${c.id}">編集</button>
+          <button class="ghost" data-del="${c.id}">削除</button>
+        </div>
       </div>
       <div class="chips"><span class="chip ${c.kind === "existing" ? "green" : ""}">${KIND_JA[c.kind] || c.kind}</span></div>
       ${c.notes ? `<div class="card-meta pre">${esc(c.notes)}</div>` : ""}`;
+    el.querySelector("[data-edit]").onclick = () => editClient(c);
     el.querySelector("[data-del]").onclick = async () => {
       if (!confirm("この店舗を削除しますか？関連する求人も削除されます。")) return;
       await api(`/api/clients/${c.id}`, { method: "DELETE" });
@@ -134,12 +167,25 @@ async function loadClients() {
   sel.innerHTML = clients.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
 }
 
+function editClient(c) {
+  const form = document.getElementById("client-form");
+  const set = (n, v) => { if (form.elements[n] !== undefined) form.elements[n].value = v ?? ""; };
+  set("name", c.name); set("kind", c.kind); set("industry", c.industry); set("address", c.address);
+  set("contact_name", c.contact_name); set("contact_email", c.contact_email);
+  set("phone", c.phone); set("notes", c.notes);
+  setEditMode("client", c.id, c.name);
+  showTab("clients");
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 document.getElementById("client-form").addEventListener("submit", async e => {
   e.preventDefault();
-  const f = new FormData(e.target);
+  const payload = Object.fromEntries(new FormData(e.target));
+  const id = editState.client;
   try {
-    await api("/api/clients", { method: "POST", body: JSON.stringify(Object.fromEntries(f)) });
-    e.target.reset(); toast("店舗を登録しました"); loadClients();
+    if (id) await api(`/api/clients/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+    else await api("/api/clients", { method: "POST", body: JSON.stringify(payload) });
+    clearForm("client"); toast(id ? "店舗を更新しました" : "店舗を登録しました"); loadClients();
   } catch (err) { toast(err.message, true); }
 });
 
@@ -203,6 +249,7 @@ async function loadTalents() {
           ${natVisa ? `<div class="card-meta">${natVisa}</div>` : ""}
         </div>
         <div class="card-actions">
+          <button class="ghost" data-edit="${t.id}">編集</button>
           <button class="ghost" data-contact="${t.id}">連絡先</button>
           <button class="ghost" data-del="${t.id}">削除</button>
         </div>
@@ -211,6 +258,7 @@ async function loadTalents() {
       ${countries}
       ${t.profile ? `<div class="card-meta">${esc(t.profile)}</div>` : ""}
       ${contactBlock(t)}`;
+    el.querySelector("[data-edit]").onclick = () => editTalent(t);
     el.querySelector("[data-del]").onclick = async () => {
       if (!confirm("削除しますか？")) return;
       await api(`/api/talents/${t.id}`, { method: "DELETE" });
@@ -255,6 +303,25 @@ function fillTalentForm(fields) {
   set("profile", fields.profile);
 }
 
+// 既存人材をフォームに読み込んで編集モードに
+function editTalent(t) {
+  const form = document.getElementById("talent-form");
+  const set = (n, v) => { if (form.elements[n] !== undefined) form.elements[n].value = v ?? ""; };
+  set("name", t.name); set("kana", t.kana);
+  set("experience_years", t.experience_years); set("desired_salary", t.desired_salary);
+  set("type_os", t.type_os); set("work_style", t.work_style); set("location", t.location);
+  set("availability", t.availability);
+  set("nationality", t.nationality); set("visa_status", t.visa_status);
+  set("phone", t.phone); set("email", t.email); set("contact_note", t.contact_note);
+  set("profile", t.profile);
+  B.talentSkills.set(t.skills || []);
+  B.talentLangs.set(t.languages || []);
+  B.talentCountries.set(t.desired_countries || []);
+  setEditMode("talent", t.id, t.name);
+  showTab("talents");
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 document.getElementById("resume-btn").addEventListener("click", async () => {
   const input = document.getElementById("resume-file");
   const status = document.getElementById("resume-status");
@@ -294,11 +361,12 @@ document.getElementById("talent-form").addEventListener("submit", async e => {
   payload.desired_countries = B.talentCountries.get();
   payload.experience_years = parseFloat(payload.experience_years || "0");
   payload.desired_salary = parseInt(payload.desired_salary || "0", 10);
+  const id = editState.talent;
   try {
-    await api("/api/talents", { method: "POST", body: JSON.stringify(payload) });
-    e.target.reset();
-    B.talentSkills.clear(); B.talentLangs.clear(); B.talentCountries.clear();
-    toast("人材を登録しました"); loadTalents();
+    if (id) await api(`/api/talents/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+    else await api("/api/talents", { method: "POST", body: JSON.stringify(payload) });
+    clearForm("talent");
+    toast(id ? "人材を更新しました" : "人材を登録しました"); loadTalents();
   } catch (err) { toast(err.message, true); }
 });
 
@@ -323,10 +391,16 @@ async function loadJobs() {
           <div class="card-title">${esc(j.title)}</div>
           <div class="card-meta">${esc(j.client_name || "")} ／ ${pay} ／ ${esc(j.type_os || "-")} ／ ${esc(j.location || "-")} ／ ${WORK_STYLE_JA[j.work_style] || j.work_style} ／ ${j.headcount}名</div>
         </div>
-        <button class="ghost" data-del="${j.id}">削除</button>
+        <div class="card-actions">
+          <button class="ghost" data-edit="${j.id}">編集</button>
+          <button class="ghost" data-del="${j.id}">削除</button>
+        </div>
       </div>
       <div class="chips">${countryChip}${visaChip}${req}${reqLangs}</div>
-      ${j.description ? `<div class="card-meta">${esc(j.description)}</div>` : ""}`;
+      ${j.description ? `<div class="card-meta">${esc(j.description)}</div>` : ""}
+      <button class="secondary job-match-btn" data-match="${j.id}">🎯 この求人でマッチング</button>`;
+    el.querySelector("[data-edit]").onclick = () => editJob(j);
+    el.querySelector("[data-match]").onclick = () => matchJob(j.id);
     el.querySelector("[data-del]").onclick = async () => {
       if (!confirm("削除しますか？")) return;
       await api(`/api/jobs/${j.id}`, { method: "DELETE" });
@@ -339,10 +413,34 @@ async function loadJobs() {
   sel.innerHTML = jobs.map(j => `<option value="${j.id}">${esc(j.title)}（${esc(j.client_name || "")}）</option>`).join("");
 }
 
+// 既存求人をフォームに読み込んで編集モードに
+function editJob(j) {
+  const form = document.getElementById("job-form");
+  document.getElementById("job-client").value = j.client_id;
+  const set = (n, v) => { if (form.elements[n] !== undefined) form.elements[n].value = v ?? ""; };
+  set("title", j.title); set("offered_salary", j.offered_salary); set("type_os", j.type_os);
+  set("work_style", j.work_style); set("location", j.location); set("headcount", j.headcount);
+  set("country", j.country); set("currency", j.currency); set("description", j.description);
+  form.elements["visa_support"].checked = !!j.visa_support;
+  B.jobSkills.set(j.required_skills || []);
+  B.jobLangs.set(j.required_languages || []);
+  setEditMode("job", j.id, j.title);
+  showTab("jobs");
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// 求人カードから直接マッチングを実行
+function matchJob(jobId) {
+  const sel = document.getElementById("match-job");
+  sel.value = String(jobId);
+  showTab("match");
+  document.getElementById("run-match").click();
+  document.getElementById("tab-match").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 document.getElementById("job-form").addEventListener("submit", async e => {
   e.preventDefault();
-  const f = new FormData(e.target);
-  const payload = Object.fromEntries(f);
+  const payload = Object.fromEntries(new FormData(e.target));
   payload.client_id = parseInt(document.getElementById("job-client").value, 10);
   payload.required_skills = B.jobSkills.get();
   payload.required_languages = B.jobLangs.get();
@@ -351,10 +449,11 @@ document.getElementById("job-form").addEventListener("submit", async e => {
   payload.country = payload.country || "日本";
   payload.currency = payload.currency || "JPY";
   payload.visa_support = e.target.elements["visa_support"].checked;
+  const id = editState.job;
   try {
-    await api("/api/jobs", { method: "POST", body: JSON.stringify(payload) });
-    e.target.reset(); B.jobSkills.clear(); B.jobLangs.clear();
-    toast("求人を登録しました"); loadJobs();
+    if (id) await api(`/api/jobs/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+    else await api("/api/jobs", { method: "POST", body: JSON.stringify(payload) });
+    clearForm("job"); toast(id ? "求人を更新しました" : "求人を登録しました"); loadJobs();
   } catch (err) { toast(err.message, true); }
 });
 

@@ -219,6 +219,21 @@ button.ghost:hover { color: var(--danger); border-color: var(--danger); backgrou
 }
 .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
 .card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* 編集モードのバナー・リンク */
+.edit-banner {
+  background: var(--warn-soft); border: 1px solid #f4d9a8; color: #8a5300;
+  border-radius: 9px; padding: 8px 12px; margin-bottom: 12px; font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.link-btn {
+  background: none; border: none; color: var(--accent); cursor: pointer;
+  font-size: 13px; text-decoration: underline; padding: 0 2px; font-weight: 600;
+}
+.link-btn:hover { color: #1f52d6; }
+
+/* 求人カードのマッチングボタン */
+.job-match-btn { margin-top: 12px; width: 100%; }
 .card-title { font-weight: 700; }
 .card-meta { color: var(--muted); font-size: 12px; margin-top: 3px; }
 .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
