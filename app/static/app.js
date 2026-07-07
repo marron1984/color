@@ -570,7 +570,7 @@ function barList(items) {
   return items.map(i => `
     <div class="db-bar-row">
       <div class="db-bar-label" title="${esc(i.name)}">${esc(i.name)}</div>
-      <div class="db-bar-track"><div class="db-bar-fill" style="width:${(i.count / max * 100).toFixed(1)}%"></div></div>
+      <div class="db-bar-track"><div class="db-bar-fill" style="width:${(i.count / max * 100).toFixed(1)}%${i.count ? "" : ";min-width:0"}"></div></div>
       <div class="db-bar-val">${i.count}</div>
     </div>`).join("");
 }
@@ -585,7 +585,7 @@ function statusBars(t) {
   return rows.map(r => `
     <div class="db-bar-row">
       <div class="db-bar-label">${r.label}</div>
-      <div class="db-bar-track"><div class="db-bar-fill" style="width:${(r.count / max * 100).toFixed(1)}%;background:${r.color}"></div></div>
+      <div class="db-bar-track"><div class="db-bar-fill" style="width:${(r.count / max * 100).toFixed(1)}%;background:${r.color}${r.count ? "" : ";min-width:0"}"></div></div>
       <div class="db-bar-val">${r.count}</div>
     </div>`).join("");
 }

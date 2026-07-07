@@ -226,6 +226,8 @@ button.ghost:hover { color: var(--danger); border-color: var(--danger); backgrou
   border-radius: 9px; padding: 8px 12px; margin-bottom: 12px; font-size: 13px; font-weight: 700;
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
 }
+/* display:flex が hidden 属性を上書きするため、明示的に非表示化 */
+.edit-banner[hidden] { display: none; }
 .link-btn {
   background: none; border: none; color: var(--accent); cursor: pointer;
   font-size: 13px; text-decoration: underline; padding: 0 2px; font-weight: 600;
@@ -295,7 +297,7 @@ button.ghost:hover { color: var(--danger); border-color: var(--danger); backgrou
 .kpi-accent .kpi-num { color: var(--accent); }
 .kpi-green .kpi-num { color: #0e8a68; }
 
-.db-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.db-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
 .db-card h3 { margin: 0 0 12px; font-size: 15px; }
 .db-bars { display: flex; flex-direction: column; gap: 8px; }
 .db-bar-row { display: grid; grid-template-columns: 108px 1fr 30px; align-items: center; gap: 10px; font-size: 12.5px; }
