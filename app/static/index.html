@@ -28,7 +28,8 @@
   </div>
 
   <nav class="tabs">
-    <button class="tab active" data-tab="match"><span class="tab-ico">🎯</span><span class="tab-txt">マッチング</span></button>
+    <button class="tab active" data-tab="dashboard"><span class="tab-ico">📊</span><span class="tab-txt">ダッシュボード</span></button>
+    <button class="tab" data-tab="match"><span class="tab-ico">🎯</span><span class="tab-txt">マッチング</span></button>
     <button class="tab" data-tab="jobs"><span class="tab-ico">📋</span><span class="tab-txt">求人</span></button>
     <button class="tab" data-tab="talents"><span class="tab-ico">🧑‍🍳</span><span class="tab-txt">人材</span></button>
     <button class="tab" data-tab="clients"><span class="tab-ico">🏬</span><span class="tab-txt">店舗</span></button>
@@ -125,8 +126,13 @@
   </datalist>
 
   <main>
+    <!-- ========== ダッシュボード ========== -->
+    <section id="tab-dashboard" class="tab-panel active">
+      <div id="dashboard"><div class="empty">読み込み中…</div></div>
+    </section>
+
     <!-- ========== マッチング ========== -->
-    <section id="tab-match" class="tab-panel active">
+    <section id="tab-match" class="tab-panel">
       <div class="panel">
         <h2>AI マッチング</h2>
         <p class="hint">求人を選ぶと、登録人材の適合度をスコアリングし上位候補を提案します。</p>

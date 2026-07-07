@@ -99,6 +99,7 @@ function showTab(name) {
   document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
   const panel = document.getElementById("tab-" + name);
   if (panel) panel.classList.add("active");
+  if (name === "dashboard" && typeof loadDashboard === "function") loadDashboard();
 }
 document.querySelectorAll(".tab").forEach(btn => {
   btn.addEventListener("click", () => showTab(btn.dataset.tab));
@@ -562,8 +563,76 @@ async function loadHealth() {
   } catch (_) {}
 }
 
+// ---------- ダッシュボード ----------
+function barList(items) {
+  if (!items || !items.length) return '<div class="db-empty">データがありません</div>';
+  const max = Math.max(1, ...items.map(i => i.count));
+  return items.map(i => `
+    <div class="db-bar-row">
+      <div class="db-bar-label" title="${esc(i.name)}">${esc(i.name)}</div>
+      <div class="db-bar-track"><div class="db-bar-fill" style="width:${(i.count / max * 100).toFixed(1)}%"></div></div>
+      <div class="db-bar-val">${i.count}</div>
+    </div>`).join("");
+}
+
+function statusBars(t) {
+  const rows = [
+    { label: "即勤務可", count: t.available, color: "var(--accent-2)" },
+    { label: "勤務中", count: t.assigned, color: "var(--warn)" },
+    { label: "対応不可", count: t.unavailable, color: "var(--muted)" },
+  ];
+  const max = Math.max(1, ...rows.map(r => r.count));
+  return rows.map(r => `
+    <div class="db-bar-row">
+      <div class="db-bar-label">${r.label}</div>
+      <div class="db-bar-track"><div class="db-bar-fill" style="width:${(r.count / max * 100).toFixed(1)}%;background:${r.color}"></div></div>
+      <div class="db-bar-val">${r.count}</div>
+    </div>`).join("");
+}
+
+async function loadDashboard() {
+  const root = document.getElementById("dashboard");
+  try {
+    const s = await api("/api/stats");
+    root.innerHTML = `
+      <div class="kpi-row">
+        <div class="kpi" data-go="clients">
+          <div class="kpi-num">${s.clients.total}<span class="unit">店</span></div>
+          <div class="kpi-label">🏬 店舗</div>
+          <div class="kpi-sub">新規 ${s.clients.new} ／ 既存 ${s.clients.existing}</div>
+        </div>
+        <div class="kpi kpi-green" data-go="talents">
+          <div class="kpi-num">${s.talents.available}<span class="unit">名</span></div>
+          <div class="kpi-label">🧑‍🍳 稼働可能な人材</div>
+          <div class="kpi-sub">登録 ${s.talents.total} 名中</div>
+        </div>
+        <div class="kpi kpi-accent" data-go="jobs">
+          <div class="kpi-num">${s.jobs.open}<span class="unit">件</span></div>
+          <div class="kpi-label">📋 募集中の求人</div>
+          <div class="kpi-sub">募集 ${s.jobs.headcount} 名 ／ 海外 ${s.jobs.overseas} 件</div>
+        </div>
+        <div class="kpi" data-go="match">
+          <div class="kpi-num">${s.matches.total}<span class="unit">件</span></div>
+          <div class="kpi-label">🎯 保存済みマッチ</div>
+          <div class="kpi-sub">クリックでマッチングへ</div>
+        </div>
+      </div>
+      <div class="db-grid">
+        <div class="panel db-card"><h3>人材の稼働状況</h3><div class="db-bars">${statusBars(s.talents)}</div></div>
+        <div class="panel db-card"><h3>職種別の人材</h3><div class="db-bars">${barList(s.talent_by_type)}</div></div>
+        <div class="panel db-card"><h3>国籍別の人材</h3><div class="db-bars">${barList(s.talent_by_nationality)}</div></div>
+        <div class="panel db-card"><h3>勤務国別の求人</h3><div class="db-bars">${barList(s.jobs_by_country)}</div></div>
+      </div>`;
+    root.querySelectorAll("[data-go]").forEach(el => {
+      el.onclick = () => showTab(el.dataset.go);
+    });
+  } catch (err) {
+    root.innerHTML = `<div class="empty">読み込みに失敗しました: ${esc(err.message)}</div>`;
+  }
+}
+
 function refreshAll() {
-  loadClients(); loadTalents(); loadJobs();
+  loadDashboard(); loadClients(); loadTalents(); loadJobs();
 }
 
 // 初期ロード

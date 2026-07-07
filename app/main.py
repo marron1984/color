@@ -61,6 +61,49 @@ def health() -> dict:
     }
 
 
+@app.get("/api/stats")
+def stats(db: Session = Depends(get_db)) -> dict:
+    """ダッシュボード用の集計値を返す."""
+    clients = db.scalars(select(models.Client)).all()
+    talents = db.scalars(select(models.Talent)).all()
+    jobs = db.scalars(select(models.Job)).all()
+    matches = db.scalars(select(models.Match)).all()
+
+    def tally(items, key) -> list[dict]:
+        counts: dict[str, int] = {}
+        for it in items:
+            name = (key(it) or "").strip() or "未設定"
+            counts[name] = counts.get(name, 0) + 1
+        return sorted(
+            ({"name": k, "count": v} for k, v in counts.items()),
+            key=lambda x: (-x["count"], x["name"]),
+        )
+
+    return {
+        "clients": {
+            "total": len(clients),
+            "new": sum(1 for c in clients if c.kind == "new"),
+            "existing": sum(1 for c in clients if c.kind == "existing"),
+        },
+        "talents": {
+            "total": len(talents),
+            "available": sum(1 for t in talents if t.availability == "available"),
+            "assigned": sum(1 for t in talents if t.availability == "assigned"),
+            "unavailable": sum(1 for t in talents if t.availability == "unavailable"),
+        },
+        "jobs": {
+            "total": len(jobs),
+            "open": sum(1 for j in jobs if j.status == "open"),
+            "overseas": sum(1 for j in jobs if (j.country or "日本") != "日本"),
+            "headcount": sum(int(j.headcount or 0) for j in jobs),
+        },
+        "matches": {"total": len(matches)},
+        "talent_by_type": tally(talents, lambda t: t.type_os),
+        "talent_by_nationality": tally(talents, lambda t: t.nationality),
+        "jobs_by_country": tally(jobs, lambda j: j.country or "日本"),
+    }
+
+
 # --------------------------------------------------------------------------- #
 # Client
 # --------------------------------------------------------------------------- #

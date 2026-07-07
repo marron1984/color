@@ -281,6 +281,37 @@ button.ghost:hover { color: var(--danger); border-color: var(--danger); backgrou
 
 .empty { color: var(--muted); text-align: center; padding: 30px; font-size: 14px; }
 
+/* ダッシュボード */
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+.kpi {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+  padding: 16px 18px; box-shadow: var(--shadow); cursor: pointer; transition: border-color .15s, transform .1s;
+}
+.kpi:hover { border-color: var(--accent); transform: translateY(-1px); }
+.kpi-num { font-size: 30px; font-weight: 800; color: var(--text); line-height: 1.05; }
+.kpi-num .unit { font-size: 14px; font-weight: 700; color: var(--muted); margin-left: 3px; }
+.kpi-label { font-size: 12.5px; color: var(--muted); margin-top: 6px; font-weight: 700; }
+.kpi-sub { font-size: 11px; color: var(--muted); margin-top: 5px; }
+.kpi-accent .kpi-num { color: var(--accent); }
+.kpi-green .kpi-num { color: #0e8a68; }
+
+.db-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.db-card h3 { margin: 0 0 12px; font-size: 15px; }
+.db-bars { display: flex; flex-direction: column; gap: 8px; }
+.db-bar-row { display: grid; grid-template-columns: 108px 1fr 30px; align-items: center; gap: 10px; font-size: 12.5px; }
+.db-bar-label { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.db-bar-track { background: #eef2f8; border-radius: 6px; height: 14px; overflow: hidden; }
+.db-bar-fill { height: 100%; border-radius: 6px; background: var(--accent); min-width: 3px; }
+.db-bar-val { text-align: right; font-weight: 800; color: var(--muted); }
+.db-empty { color: var(--muted); font-size: 13px; padding: 4px 0; }
+
+@media (max-width: 800px) { .db-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .kpi-row { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .kpi-num { font-size: 26px; }
+  .db-bar-row { grid-template-columns: 92px 1fr 28px; }
+}
+
 .toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
   background: #fff; border: 1px solid var(--border-strong); color: var(--text);
