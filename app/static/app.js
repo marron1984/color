@@ -486,10 +486,23 @@ function renderMatches(candidates) {
   container.innerHTML = "";
   candidates.forEach((c, i) => {
     const scoreCls = c.score >= 75 ? "high" : c.score < 50 ? "low" : "";
-    const bars = c.breakdown.components.map(comp => `
+    const bd = c.breakdown;
+    const barsFor = (side) => (bd.components || []).filter(x => (x.side || "employer") === side).map(comp => `
       <div class="bar-label">${esc(comp.label)}</div>
       <div class="bar-track"><div class="bar-fill" style="width:${comp.score}%"></div><span class="bar-val">${comp.score}</span></div>
       ${comp.detail ? `<div class="bar-detail">${esc(comp.detail)}</div>` : ""}`).join("");
+    const emp = bd.employer_fit, cand = bd.candidate_fit;
+    const recip = (emp != null && cand != null) ? `
+      <div class="recip">
+        <span class="recip-pill">企業ニーズ適合 <b>${emp}</b></span>
+        <span class="recip-x">×</span>
+        <span class="recip-pill cand">本人希望適合 <b>${cand}</b></span>
+        ${bd.percentile != null ? `<span class="recip-rank">候補内 上位${bd.percentile}%</span>` : ""}
+      </div>` : "";
+    const groups = recip ? `
+      <div class="bar-group"><div class="bar-group-title">企業→人材（要件の充足）</div><div class="bars">${barsFor("employer")}</div></div>
+      <div class="bar-group"><div class="bar-group-title">人材→企業（本人の希望）</div><div class="bars">${barsFor("candidate")}</div></div>`
+      : `<div class="bars">${barsFor("employer")}${barsFor("candidate")}</div>`;
     const t = c.talent;
     const srcLabel = c.source === "ai" ? "AI 生成" : "スコア明細";
     const el = document.createElement("div");
@@ -503,8 +516,9 @@ function renderMatches(candidates) {
           </div>
           <div class="score-pill ${scoreCls}">${c.score}</div>
         </div>
+        ${recip}
         <div class="reason">💡 ${esc(c.reason)}<span class="src">(${srcLabel})</span></div>
-        <div class="bars">${bars}</div>
+        ${groups}
         <div class="match-actions">
           <button class="ghost" data-detail="${t.id}">個人情報・連絡先を表示</button>
         </div>

@@ -267,6 +267,25 @@ button.ghost:hover { color: var(--danger); border-color: var(--danger); backgrou
 }
 .score-pill.high { background: var(--accent-2-soft); color: #0e8a68; }
 .score-pill.low { background: var(--danger-soft); color: var(--danger); }
+/* 双方向（reciprocal）サマリ */
+.recip { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 10px 0 4px; }
+.recip-pill {
+  font-size: 12px; font-weight: 700; padding: 4px 11px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent); border: 1px solid #cfe0ff;
+}
+.recip-pill b { font-size: 13px; }
+.recip-pill.cand { background: var(--accent-2-soft); color: #0e8a68; border-color: #b7e6d6; }
+.recip-x { color: var(--muted); font-weight: 700; }
+.recip-rank {
+  font-size: 11px; font-weight: 700; color: var(--warn);
+  background: var(--warn-soft); border: 1px solid #f4d9a8; border-radius: 999px; padding: 3px 10px;
+}
+.bar-group { margin-top: 10px; }
+.bar-group-title {
+  font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 6px;
+  padding-bottom: 4px; border-bottom: 1px dashed var(--border);
+}
+
 .reason {
   background: var(--panel-2); border-left: 3px solid var(--accent);
   padding: 10px 12px; border-radius: 8px; margin: 10px 0; font-size: 13.5px;

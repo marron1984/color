@@ -66,6 +66,10 @@ def _template_reason(job: Any, talent: Any, breakdown: dict[str, Any]) -> str:
     strong = [c for c in comps if c["score"] >= 70]
     weak = [c for c in comps if c["score"] < 50]
     parts = [f"総合適合度 {breakdown.get('total', 0)} 点。"]
+    emp = breakdown.get("employer_fit")
+    cand = breakdown.get("candidate_fit")
+    if emp is not None and cand is not None:
+        parts.append(f"企業ニーズ適合 {emp} × 本人希望適合 {cand}。")
     if strong:
         parts.append(
             "強み: " + "、".join(f"{c['label']}（{c['detail']}）" for c in strong if c["detail"])

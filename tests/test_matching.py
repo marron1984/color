@@ -46,7 +46,7 @@ def make_talent(**kw):
 def test_perfect_candidate_scores_high():
     result = matching.score_talent(make_job(), make_talent())
     assert result.total > 90
-    assert len(result.components) == 7
+    assert len(result.components) == 9  # 企業側5 + 本人側4
 
 
 def test_missing_skill_reduces_score():
@@ -122,9 +122,41 @@ def test_top_n_limits_results():
 def test_breakdown_structure():
     breakdown = matching.score_talent(make_job(), make_talent()).breakdown()
     assert "total" in breakdown
-    assert "components" in breakdown
+    assert "employer_fit" in breakdown
+    assert "candidate_fit" in breakdown
     keys = {c["key"] for c in breakdown["components"]}
-    assert keys == {"skill", "language", "salary", "country", "type", "work_style", "availability"}
+    assert keys == {"skill", "language", "text", "experience", "type",
+                    "salary", "country", "work_style", "availability"}
+    # 各観点は企業側/本人側のいずれかに分類される
+    sides = {c["side"] for c in breakdown["components"]}
+    assert sides == {"employer", "candidate"}
+
+
+def test_reciprocal_two_sided_penalty():
+    """スキル完璧でも、本人が敬遠する条件（低待遇＋希望外の勤務国）だと総合が下がる."""
+    job_good = make_job(offered_salary=600, country="日本")
+    job_bad = make_job(offered_salary=250, country="シンガポール")  # 低待遇＋希望外
+    talent = make_talent(desired_salary=500, desired_countries=["日本"])
+    good = matching.score_talent(job_good, talent).total
+    bad = matching.score_talent(job_bad, talent).total
+    assert good > bad
+    # 本人希望適合が総合を強く引き下げる
+    assert matching.score_talent(job_bad, talent).candidate_fit < 60
+
+
+def test_must_have_gate_penalizes_missing_required_skill():
+    job = make_job(required_skills=[{"name": "寿司握り", "weight": 3, "min_level": 4}])
+    has = make_talent(skills=[{"name": "寿司握り", "level": 5}])
+    lacks = make_talent(skills=[{"name": "バリスタ", "level": 5}])  # 無関係
+    assert matching.score_talent(job, has).total > matching.score_talent(job, lacks).total
+
+
+def test_percentile_assigned_on_ranking():
+    talents = [make_talent(id=i, skills=[{"name": "調理", "level": lv}])
+               for i, lv in enumerate([5, 3, 1], start=1)]
+    ranked = matching.rank_talents(make_job(), talents)
+    assert ranked[0].percentile >= ranked[-1].percentile
+    assert ranked[0].breakdown()["percentile"] is not None
 
 
 # --- 精度改善のテスト ---
@@ -133,10 +165,17 @@ def _skill_comp(job, talent):
     return next(c for c in r.components if c.key == "skill")
 
 
-def test_experience_increases_skill_score():
+def _comp(job, talent, key):
+    r = matching.score_talent(job, talent)
+    return next(c for c in r.components if c.key == key)
+
+
+def test_experience_affects_score():
     veteran = make_talent(experience_years=15)
     rookie = make_talent(experience_years=0)
-    assert _skill_comp(make_job(), veteran).score > _skill_comp(make_job(), rookie).score
+    # 経験は専用の観点として評価され、総合スコアにも効く
+    assert _comp(make_job(), veteran, "experience").score > _comp(make_job(), rookie, "experience").score
+    assert matching.score_talent(make_job(), veteran).total > matching.score_talent(make_job(), rookie).total
 
 
 def test_higher_level_scores_higher_than_minimum():
