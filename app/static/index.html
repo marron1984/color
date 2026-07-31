@@ -36,16 +36,73 @@
   </nav>
 
   <datalist id="positions">
-    <option value="ホール"></option>
-    <option value="キッチン"></option>
-    <option value="調理長"></option>
-    <option value="店長"></option>
-    <option value="副店長"></option>
-    <option value="バリスタ"></option>
+    <option value="料理長・料理長候補"></option>
+    <option value="調理師・キッチンスタッフ"></option>
+    <option value="調理見習い"></option>
     <option value="寿司職人"></option>
-    <option value="パティシエ"></option>
+    <option value="鉄板調理"></option>
+    <option value="パティシエ・製菓"></option>
+    <option value="パン職人・パン製造"></option>
+    <option value="ピッツァイオーロ"></option>
+    <option value="蕎麦職人・うどん職人"></option>
+    <option value="天ぷら職人"></option>
+    <option value="焼鳥職人"></option>
+    <option value="栄養士・管理栄養士"></option>
+    <option value="店長・店長候補"></option>
+    <option value="ホールスタッフ"></option>
+    <option value="女将・和装ホール"></option>
     <option value="ソムリエ"></option>
-    <option value="キッチン補助"></option>
+    <option value="バーテンダー"></option>
+    <option value="バリスタ"></option>
+    <option value="レセプショニスト"></option>
+    <option value="販売"></option>
+    <option value="本部スタッフ"></option>
+    <option value="SV"></option>
+    <option value="料理講師"></option>
+    <option value="委託契約・経営者"></option>
+    <option value="食品加工・製造"></option>
+    <option value="商品・メニュー開発"></option>
+    <option value="調理補助・洗い場"></option>
+    <option value="その他"></option>
+  </datalist>
+  <datalist id="industries">
+    <option value="和食"></option>
+    <option value="日本料理・懐石料理"></option>
+    <option value="寿司・回転寿司"></option>
+    <option value="イタリアン"></option>
+    <option value="フレンチ"></option>
+    <option value="洋食・西洋料理"></option>
+    <option value="カフェ・喫茶店"></option>
+    <option value="ケーキ屋・洋菓子"></option>
+    <option value="和菓子"></option>
+    <option value="パン屋（ベーカリー）"></option>
+    <option value="居酒屋"></option>
+    <option value="焼鳥・鳥料理"></option>
+    <option value="焼肉・韓国料理"></option>
+    <option value="中華料理"></option>
+    <option value="アジア料理・エスニック"></option>
+    <option value="スペイン料理"></option>
+    <option value="ホテル・旅館"></option>
+    <option value="ウエディング"></option>
+    <option value="給食"></option>
+    <option value="専門料理"></option>
+    <option value="ステーキ・鉄板焼き"></option>
+    <option value="うどん屋・蕎麦屋"></option>
+    <option value="バル"></option>
+    <option value="バー（BAR）"></option>
+    <option value="ラーメン"></option>
+    <option value="ファミレス"></option>
+    <option value="ファストフード"></option>
+    <option value="惣菜・弁当"></option>
+    <option value="精肉・鮮魚"></option>
+    <option value="その他"></option>
+  </datalist>
+  <datalist id="employment-types">
+    <option value="正社員"></option>
+    <option value="契約社員"></option>
+    <option value="アルバイト・パート"></option>
+    <option value="業務委託"></option>
+    <option value="その他"></option>
   </datalist>
   <datalist id="countries">
     <option value="日本"></option>
@@ -222,7 +279,19 @@
                 </div>
               </div>
             </div>
-            <label>説明<textarea name="description" rows="2"></textarea></label>
+            <label>仕事内容（概要）<textarea name="description" rows="2" placeholder="店長業務／調理／接客・サービス／メニュー開発 など"></textarea></label>
+            <details class="more-section">
+              <summary>📋 募集条件の詳細（追記事項）</summary>
+              <label>雇用形態<input name="employment_type" list="employment-types" placeholder="正社員／契約社員／アルバイト・パート など" /></label>
+              <label>給与詳細<textarea name="salary_detail" rows="2" placeholder="月給/時給/年俸・固定残業代（有無/金額/時間）・試用期間・昇給・賞与（年○回）・インセンティブ・交通費・各種手当"></textarea></label>
+              <label>勤務時間<textarea name="working_hours" rows="2" placeholder="勤務時間（例:10:00〜22:00）・シフト制・実働/休憩・残業（月平均）・夜勤の有無"></textarea></label>
+              <label>休日・休暇<textarea name="holidays" rows="2" placeholder="年間休日数・完全週休二日制など・有給・夏季/年末年始・慶弔・育児/介護"></textarea></label>
+              <label>応募資格<textarea name="requirements" rows="2" placeholder="経験年数・調理経験・資格（調理師免許等）・語学力・年齢/学歴不問 など"></textarea></label>
+              <label>福利厚生<textarea name="benefits" rows="2" placeholder="社会保険完備・制服貸与・まかない・社宅/住宅手当・研修制度（語学等）・ビザサポート（海外）"></textarea></label>
+              <label>求める人物像<textarea name="ideal_candidate" rows="2" placeholder="チームワーク重視・成長意欲・接客好き・海外で活躍したい方 など"></textarea></label>
+              <label>選考フロー<textarea name="selection_flow" rows="2" placeholder="書類選考→面接（回数）→実技試験の有無→内定までの期間"></textarea></label>
+              <label>その他（店舗情報）<textarea name="store_info" rows="2" placeholder="店舗の特徴・客単価・席数・スタッフ構成・キャリアアップ制度・独立実績・オープニング・海外の渡航/住居支援 など"></textarea></label>
+            </details>
             <div class="edit-banner" id="job-edit" hidden>✏️ 編集中：<span class="edit-name"></span>
               <button type="button" class="link-btn" data-cancel="job">キャンセル</button></div>
             <button class="primary" type="submit">登録</button>
@@ -294,6 +363,40 @@
                 </select>
               </label>
             </div>
+            <div class="row">
+              <label>希望業態<input name="desired_industry" list="industries" placeholder="居酒屋／カフェ／寿司 など" /></label>
+              <label>雇用形態<input name="employment_type" list="employment-types" placeholder="正社員／アルバイト など" /></label>
+              <label>転居可否
+                <select name="relocation">
+                  <option value="">未回答</option>
+                  <option value="可">可</option>
+                  <option value="不可">不可</option>
+                </select>
+              </label>
+            </div>
+            <details class="more-section">
+              <summary>📋 基本情報・経歴（追記項目）</summary>
+              <div class="row">
+                <label>性別
+                  <select name="gender">
+                    <option value="">未回答</option>
+                    <option value="男性">男性</option>
+                    <option value="女性">女性</option>
+                    <option value="その他">その他</option>
+                  </select>
+                </label>
+                <label>生年月日<input name="birthdate" type="date" /></label>
+              </div>
+              <label>現住所<input name="address" placeholder="東京都◯◯区…" /></label>
+              <div class="row">
+                <label>最終学歴<input name="education" placeholder="◯◯大学 卒 など" /></label>
+                <label>保有資格<input name="certifications" placeholder="調理師免許 など" /></label>
+              </div>
+              <label>職務経歴<textarea name="work_history" rows="3" placeholder="店舗名／期間（◯年◯月〜◯年◯月）／業態／職種／仕事内容／退職理由／雇用形態／最終役職／給与／席数／客単価 など"></textarea></label>
+              <label>海外勤務経験<textarea name="overseas_experience" rows="2" placeholder="国・期間・業務内容 など（あれば）"></textarea></label>
+              <label>自己PR<textarea name="self_pr" rows="2"></textarea></label>
+              <label>将来の目標<textarea name="future_goals" rows="2" placeholder="独立・海外挑戦・専門性向上 など"></textarea></label>
+            </details>
             <div class="intl-section">
               <div class="intl-title">🌐 海外人材向け項目</div>
               <div class="row">
@@ -356,15 +459,6 @@
       <div class="grid-2">
         <div class="panel">
           <h2>店舗登録</h2>
-          <div class="fetch-box">
-            <div class="fetch-title">🔗 食べログから自動取得</div>
-            <div class="fetch-desc">店舗の食べログ URL を貼り付けると、店名・ジャンル・住所・電話を取得してフォームに反映します（内容は登録前に確認・修正できます）。</div>
-            <div class="fetch-row">
-              <input id="tabelog-url" type="url" placeholder="https://tabelog.com/tokyo/A0000/..." />
-              <button type="button" id="tabelog-btn" class="secondary">取得</button>
-            </div>
-            <span id="tabelog-status" class="resume-status"></span>
-          </div>
           <form id="client-form">
             <label>店舗名<input name="name" required placeholder="居酒屋 炭火屋 蔵" /></label>
             <div class="row">
@@ -374,7 +468,7 @@
                   <option value="existing">既存顧客</option>
                 </select>
               </label>
-              <label>業態<input name="industry" placeholder="居酒屋／カフェ／寿司 など" /></label>
+              <label>業態<input name="industry" list="industries" placeholder="居酒屋／カフェ／寿司 など" /></label>
             </div>
             <label>住所<input name="address" placeholder="東京都渋谷区…" /></label>
             <div class="row">

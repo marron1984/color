@@ -21,10 +21,6 @@ class ClientBase(BaseModel):
     notes: str = ""
 
 
-class TabelogFetchRequest(BaseModel):
-    url: str
-
-
 class ClientCreate(ClientBase):
     pass
 
@@ -69,6 +65,19 @@ class TalentBase(BaseModel):
     phone: str = ""
     email: str = ""
     contact_note: str = ""
+    # 追記項目（人材登録）
+    gender: str = ""
+    birthdate: str = ""
+    address: str = ""
+    desired_industry: str = ""
+    employment_type: str = ""
+    relocation: str = ""
+    education: str = ""
+    certifications: str = ""
+    work_history: str = ""
+    overseas_experience: str = ""
+    self_pr: str = ""
+    future_goals: str = ""
 
 
 class TalentCreate(TalentBase):
@@ -111,6 +120,16 @@ class JobBase(BaseModel):
     required_languages: list[RequiredLanguage] = Field(default_factory=list)
     visa_support: bool = False
     currency: str = "JPY"
+    # 追記項目（求人登録）
+    employment_type: str = ""
+    salary_detail: str = ""
+    working_hours: str = ""
+    holidays: str = ""
+    requirements: str = ""
+    benefits: str = ""
+    ideal_candidate: str = ""
+    selection_flow: str = ""
+    store_info: str = ""
 
 
 class JobCreate(JobBase):

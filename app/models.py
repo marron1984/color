@@ -85,6 +85,19 @@ class Talent(Base):
     email: Mapped[str] = mapped_column(String(200), default="")
     # その他連絡手段（LINE / WeChat / WhatsApp ID、緊急連絡先など）
     contact_note: Mapped[str] = mapped_column(Text, default="")
+    # --- 追記項目（人材登録） ---
+    gender: Mapped[str] = mapped_column(String(20), default="")          # 性別
+    birthdate: Mapped[str] = mapped_column(String(20), default="")       # 生年月日
+    address: Mapped[str] = mapped_column(String(300), default="")        # 現住所
+    desired_industry: Mapped[str] = mapped_column(String(100), default="")  # 希望業態
+    employment_type: Mapped[str] = mapped_column(String(30), default="")    # 雇用形態
+    relocation: Mapped[str] = mapped_column(String(20), default="")      # 転居可否（可/不可）
+    education: Mapped[str] = mapped_column(String(200), default="")      # 最終学歴
+    certifications: Mapped[str] = mapped_column(Text, default="")        # 保有資格
+    work_history: Mapped[str] = mapped_column(Text, default="")          # 職務経歴
+    overseas_experience: Mapped[str] = mapped_column(Text, default="")   # 海外勤務経験
+    self_pr: Mapped[str] = mapped_column(Text, default="")               # 自己PR
+    future_goals: Mapped[str] = mapped_column(Text, default="")          # 将来の目標
     created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
 
     matches: Mapped[list["Match"]] = relationship(
@@ -116,6 +129,16 @@ class Job(Base):
     headcount: Mapped[int] = mapped_column(Integer, default=1)
     description: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(20), default="open")  # open / closed
+    # --- 追記項目（求人登録） ---
+    employment_type: Mapped[str] = mapped_column(String(30), default="")  # 雇用形態
+    salary_detail: Mapped[str] = mapped_column(Text, default="")   # 給与詳細（固定残業・賞与・手当 等）
+    working_hours: Mapped[str] = mapped_column(Text, default="")    # 勤務時間（シフト・休憩・残業 等）
+    holidays: Mapped[str] = mapped_column(Text, default="")         # 休日・休暇
+    requirements: Mapped[str] = mapped_column(Text, default="")     # 応募資格
+    benefits: Mapped[str] = mapped_column(Text, default="")         # 福利厚生
+    ideal_candidate: Mapped[str] = mapped_column(Text, default="")  # 求める人物像
+    selection_flow: Mapped[str] = mapped_column(Text, default="")   # 選考フロー
+    store_info: Mapped[str] = mapped_column(Text, default="")       # その他（客単価・席数・スタッフ構成 等）
     created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
 
     client: Mapped["Client"] = relationship(back_populates="jobs")

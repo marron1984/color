@@ -190,32 +190,6 @@ document.getElementById("client-form").addEventListener("submit", async e => {
   } catch (err) { toast(err.message, true); }
 });
 
-// 食べログから店舗情報を取得してフォームに反映
-document.getElementById("tabelog-btn").addEventListener("click", async () => {
-  const urlEl = document.getElementById("tabelog-url");
-  const status = document.getElementById("tabelog-status");
-  const url = (urlEl.value || "").trim();
-  if (!url) { toast("食べログの URL を入力してください", true); return; }
-  status.textContent = "取得中…"; status.className = "resume-status loading";
-  try {
-    const data = await api("/api/clients/fetch-tabelog", {
-      method: "POST", body: JSON.stringify({ url }),
-    });
-    const form = document.getElementById("client-form");
-    const set = (name, val) => { if (val && form.elements[name]) form.elements[name].value = val; };
-    set("name", data.fields.name);
-    set("industry", data.fields.industry);
-    set("address", data.fields.address);
-    set("phone", data.fields.phone);
-    set("notes", data.fields.notes);
-    status.textContent = "✓ 取得しました（内容をご確認ください）"; status.className = "resume-status";
-    toast("食べログから取得しました");
-  } catch (err) {
-    status.textContent = ""; status.className = "resume-status err";
-    toast(err.message, true);
-  }
-});
-
 // 連絡先ブロック（既定は非表示。ボタンで開閉）
 function contactBlock(t) {
   const rows = [];
@@ -315,6 +289,15 @@ function editTalent(t) {
   set("nationality", t.nationality); set("visa_status", t.visa_status);
   set("phone", t.phone); set("email", t.email); set("contact_note", t.contact_note);
   set("profile", t.profile);
+  // 追記項目
+  set("desired_industry", t.desired_industry); set("employment_type", t.employment_type);
+  set("relocation", t.relocation); set("gender", t.gender); set("birthdate", t.birthdate);
+  set("address", t.address); set("education", t.education); set("certifications", t.certifications);
+  set("work_history", t.work_history); set("overseas_experience", t.overseas_experience);
+  set("self_pr", t.self_pr); set("future_goals", t.future_goals);
+  const det = form.querySelector("details.more-section");
+  if (det) det.open = !!(t.gender || t.birthdate || t.address || t.education || t.certifications ||
+    t.work_history || t.overseas_experience || t.self_pr || t.future_goals);
   B.talentSkills.set(t.skills || []);
   B.talentLangs.set(t.languages || []);
   B.talentCountries.set(t.desired_countries || []);
@@ -423,6 +406,15 @@ function editJob(j) {
   set("work_style", j.work_style); set("location", j.location); set("headcount", j.headcount);
   set("country", j.country); set("currency", j.currency); set("description", j.description);
   form.elements["visa_support"].checked = !!j.visa_support;
+  // 追記事項
+  set("employment_type", j.employment_type); set("salary_detail", j.salary_detail);
+  set("working_hours", j.working_hours); set("holidays", j.holidays);
+  set("requirements", j.requirements); set("benefits", j.benefits);
+  set("ideal_candidate", j.ideal_candidate); set("selection_flow", j.selection_flow);
+  set("store_info", j.store_info);
+  const det = form.querySelector("details.more-section");
+  if (det) det.open = !!(j.employment_type || j.salary_detail || j.working_hours || j.holidays ||
+    j.requirements || j.benefits || j.ideal_candidate || j.selection_flow || j.store_info);
   B.jobSkills.set(j.required_skills || []);
   B.jobLangs.set(j.required_languages || []);
   setEditMode("job", j.id, j.title);
