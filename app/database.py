@@ -84,9 +84,60 @@ def get_db():
         db.close()
 
 
+def _column_default_sql(col) -> str | None:
+    """新規カラム追加時の DEFAULT 句（既存行を埋めるため）."""
+    import sqlalchemy as sa
+
+    t = col.type
+    if isinstance(t, (sa.String, sa.Text)):
+        return "''"
+    if isinstance(t, sa.Boolean):
+        return "false"
+    if isinstance(t, (sa.Integer, sa.Float)):
+        return "0"
+    return None  # JSON 等はデフォルトなし（既存行は NULL）
+
+
+def ensure_columns() -> None:
+    """モデルに存在するがテーブルに無いカラムを ALTER TABLE で追加する.
+
+    SQLAlchemy の create_all は既存テーブルにカラムを追加しないため、
+    モデルにフィールドを足したあとの簡易マイグレーションとして使う。
+    SQLite / Postgres の双方で動作。冪等（不足分のみ追加）。
+    """
+    from sqlalchemy import inspect as sa_inspect, text
+
+    try:
+        insp = sa_inspect(engine)
+    except Exception:
+        return
+    for table in Base.metadata.sorted_tables:
+        try:
+            if not insp.has_table(table.name):
+                continue
+            existing = {c["name"] for c in insp.get_columns(table.name)}
+        except Exception:
+            continue
+        for col in table.columns:
+            if col.name in existing:
+                continue
+            try:
+                coltype = col.type.compile(dialect=engine.dialect)
+                ddl = f'ALTER TABLE {table.name} ADD COLUMN "{col.name}" {coltype}'
+                default_sql = _column_default_sql(col)
+                if default_sql is not None:
+                    ddl += f" DEFAULT {default_sql}"
+                with engine.begin() as conn:
+                    conn.execute(text(ddl))
+            except Exception:
+                # 1 カラムの失敗で全体を止めない
+                pass
+
+
 def init_db() -> None:
-    """テーブルを作成する（存在しなければ）."""
+    """テーブルを作成し（存在しなければ）、不足カラムを追加する."""
     # モデルを import してメタデータに登録してから create_all する。
     from app import models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+    ensure_columns()

@@ -2,15 +2,36 @@
 from __future__ import annotations
 
 import datetime as _dt
-from typing import Any
+from typing import Any, get_origin
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+class _CoerceBase(BaseModel):
+    """DB の NULL 値に強くするための基底.
+
+    後から追加した列や旧データで値が None でも、文字列は空文字、
+    リストは空配列に補正して検証エラー（＝500）を防ぐ。
+    """
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def _coerce_none(cls, v, info):
+        if v is None:
+            fld = cls.model_fields.get(info.field_name)
+            if fld is not None:
+                ann = fld.annotation
+                if ann is str:
+                    return ""
+                if get_origin(ann) is list:
+                    return []
+        return v
 
 
 # --------------------------------------------------------------------------- #
 # Client
 # --------------------------------------------------------------------------- #
-class ClientBase(BaseModel):
+class ClientBase(_CoerceBase):
     name: str
     kind: str = "new"  # new / existing
     industry: str = ""
@@ -44,7 +65,7 @@ class LanguageItem(BaseModel):
     level: int = Field(default=1, ge=1, le=5)  # 5=ネイティブ/流暢
 
 
-class TalentBase(BaseModel):
+class TalentBase(_CoerceBase):
     name: str
     kana: str = ""
     skills: list[SkillItem] = Field(default_factory=list)
@@ -104,7 +125,7 @@ class RequiredLanguage(BaseModel):
     min_level: int = Field(default=1, ge=1, le=5)
 
 
-class JobBase(BaseModel):
+class JobBase(_CoerceBase):
     client_id: int
     title: str
     required_skills: list[RequiredSkill] = Field(default_factory=list)
