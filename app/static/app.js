@@ -469,6 +469,28 @@ document.getElementById("run-match").addEventListener("click", async () => {
   }
 });
 
+// ビザ適格性ブロック（越境要素がある候補に表示）
+const VISA_CLS = { eligible: "green", conditional: "blue", review: "warn", difficult: "danger" };
+const VISA_LABEL = { eligible: "可能", conditional: "条件付き", review: "要確認", difficult: "困難" };
+function visaBlock(v) {
+  const cls = VISA_CLS[v.level] || "warn";
+  const progs = (v.programs || []).map(p => `
+    <div class="visa-prog">
+      <span class="visa-plevel ${VISA_CLS[p.level] || "warn"}">${esc(VISA_LABEL[p.level] || "要確認")}</span>
+      <div class="visa-pbody">
+        <b>${esc(p.name)}</b>${p.sponsor ? ' <span class="visa-tag">要スポンサー</span>' : ""}
+        <div class="visa-req">${esc(p.requirements)} ／ 目安: ${esc(p.months)}${p.notes ? " ／ " + esc(p.notes) : ""}</div>
+      </div>
+    </div>`).join("");
+  const top = v.programs && v.programs[0] ? v.programs[0].name : "";
+  return `<details class="visa-box">
+    <summary>🛂 ビザ（${esc(v.country)}）：<span class="visa-badge ${cls}">${esc(v.level_label)}</span>
+      <span class="visa-sum">${esc(top)}</span></summary>
+    <div class="visa-progs">${progs}</div>
+    <div class="visa-note">※ ${esc(v.disclaimer)}</div>
+  </details>`;
+}
+
 function renderMatches(candidates) {
   const container = document.getElementById("match-results");
   if (!candidates.length) {
@@ -510,6 +532,7 @@ function renderMatches(candidates) {
         </div>
         ${recip}
         <div class="reason">💡 ${esc(c.reason)}<span class="src">(${srcLabel})</span></div>
+        ${(c.visa && c.visa.relevant) ? visaBlock(c.visa) : ""}
         ${groups}
         <div class="match-actions">
           <button class="ghost" data-detail="${t.id}">個人情報・連絡先を表示</button>

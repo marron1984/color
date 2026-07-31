@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import ai, matching, models, resume, schemas
+from app import ai, matching, models, resume, schemas, visa
 from app.database import IS_PERSISTENT, USING_EXTERNAL, get_db, init_db
 
 app = FastAPI(
@@ -59,6 +59,19 @@ def health() -> dict:
         "persistent": IS_PERSISTENT,       # False = 一時ストレージ（再起動で消える）
         "external_db": USING_EXTERNAL,
     }
+
+
+@app.post("/api/visa/assess")
+def visa_assess(req: schemas.VisaAssessRequest) -> dict:
+    """ビザ／在留資格の適格性を単体で判定する（国籍×勤務国×職種 等）。"""
+    return visa.assess(
+        nationality=req.nationality,
+        country=req.country,
+        role=req.role,
+        experience_years=req.experience_years,
+        japanese_level=req.japanese_level,
+        held_status=req.held_status,
+    )
 
 
 @app.get("/api/stats")
@@ -314,6 +327,7 @@ def run_match(
                 breakdown=breakdown,
                 reason=reason,
                 source=source,
+                visa=visa.assess_for_match(job, talent),
             )
         )
     if req.persist:

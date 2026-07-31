@@ -189,6 +189,16 @@ class MatchCandidate(BaseModel):
     breakdown: dict[str, Any]
     reason: str
     source: str
+    visa: dict[str, Any] | None = None  # ビザ適格性判定
+
+
+class VisaAssessRequest(BaseModel):
+    nationality: str = ""
+    country: str = "日本"
+    role: str = ""
+    experience_years: float = 0
+    japanese_level: int = 0
+    held_status: str = ""
 
 
 class RunMatchRequest(BaseModel):
