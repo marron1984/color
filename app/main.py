@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import ai, learning, matching, models, resume, schemas, visa
+from app import ai, learning, matching, models, resume, schemas, verification, visa
 from app.database import IS_PERSISTENT, USING_EXTERNAL, get_db, init_db
 
 app = FastAPI(
@@ -158,9 +158,22 @@ def delete_client(client_id: int, db: Session = Depends(get_db)):
 # --------------------------------------------------------------------------- #
 # Talent
 # --------------------------------------------------------------------------- #
+def _talent_out(talent: models.Talent, verifs: list[models.Verification] | None = None) -> schemas.TalentOut:
+    out = schemas.TalentOut.model_validate(talent)
+    items = talent.verifications if verifs is None else verifs
+    out.trust = verification.compute_trust(items)
+    return out
+
+
 @app.get("/api/talents", response_model=list[schemas.TalentOut])
 def list_talents(db: Session = Depends(get_db)):
-    return db.scalars(select(models.Talent).order_by(models.Talent.id.desc())).all()
+    talents = db.scalars(select(models.Talent).order_by(models.Talent.id.desc())).all()
+    # 検証項目を一括ロードして人材ごとに集計（N+1 回避）
+    verifs = db.scalars(select(models.Verification)).all()
+    by_talent: dict[int, list[models.Verification]] = {}
+    for v in verifs:
+        by_talent.setdefault(v.talent_id, []).append(v)
+    return [_talent_out(t, by_talent.get(t.id, [])) for t in talents]
 
 
 @app.post("/api/talents/parse-resume")
@@ -188,7 +201,7 @@ def create_talent(payload: schemas.TalentCreate, db: Session = Depends(get_db)):
     db.add(talent)
     db.commit()
     db.refresh(talent)
-    return talent
+    return _talent_out(talent, [])
 
 
 @app.get("/api/talents/{talent_id}", response_model=schemas.TalentOut)
@@ -196,7 +209,7 @@ def get_talent(talent_id: int, db: Session = Depends(get_db)):
     talent = db.get(models.Talent, talent_id)
     if not talent:
         raise HTTPException(404, "人材が見つかりません")
-    return talent
+    return _talent_out(talent)
 
 
 @app.put("/api/talents/{talent_id}", response_model=schemas.TalentOut)
@@ -208,7 +221,7 @@ def update_talent(talent_id: int, payload: schemas.TalentCreate, db: Session = D
         setattr(talent, key, value)
     db.commit()
     db.refresh(talent)
-    return talent
+    return _talent_out(talent)
 
 
 @app.delete("/api/talents/{talent_id}", status_code=204)
@@ -217,6 +230,96 @@ def delete_talent(talent_id: int, db: Session = Depends(get_db)):
     if not talent:
         raise HTTPException(404, "人材が見つかりません")
     db.delete(talent)
+    db.commit()
+
+
+# --------------------------------------------------------------------------- #
+# Verification（検証レイヤー）
+# --------------------------------------------------------------------------- #
+@app.get("/api/verifications/meta")
+def verification_meta() -> dict:
+    """検証項目の選択肢（カテゴリ・ステータス・方法）を返す。"""
+    return {
+        "categories": [
+            {"key": k, "label": label, "weight": w}
+            for k, label, w in verification.CATEGORIES
+        ],
+        "statuses": [
+            {"key": k, "label": v} for k, v in verification.STATUS_LABELS.items()
+        ],
+        "methods": [
+            {"key": k, "label": v} for k, v in verification.METHOD_LABELS.items()
+        ],
+    }
+
+
+@app.get("/api/talents/{talent_id}/verifications")
+def list_verifications(talent_id: int, db: Session = Depends(get_db)) -> dict:
+    """人材の検証項目一覧と、検証スコア（信頼度サマリ）を返す。"""
+    talent = db.get(models.Talent, talent_id)
+    if not talent:
+        raise HTTPException(404, "人材が見つかりません")
+    items = db.scalars(
+        select(models.Verification)
+        .where(models.Verification.talent_id == talent_id)
+        .order_by(models.Verification.id.desc())
+    ).all()
+    return {
+        "trust": verification.compute_trust(items),
+        "items": [schemas.VerificationOut.model_validate(v) for v in items],
+    }
+
+
+@app.post("/api/talents/{talent_id}/verifications",
+          response_model=schemas.VerificationOut, status_code=201)
+def create_verification(
+    talent_id: int, payload: schemas.VerificationCreate, db: Session = Depends(get_db)
+):
+    talent = db.get(models.Talent, talent_id)
+    if not talent:
+        raise HTTPException(404, "人材が見つかりません")
+    if payload.category not in verification.CATEGORY_KEYS:
+        raise HTTPException(400, "カテゴリが不正です")
+    if payload.status not in verification.STATUS_KEYS:
+        raise HTTPException(400, "ステータスが不正です")
+    v = models.Verification(talent_id=talent_id, **payload.model_dump())
+    if v.status == "verified":
+        v.verified_at = models._now()
+    db.add(v)
+    db.commit()
+    db.refresh(v)
+    return schemas.VerificationOut.model_validate(v)
+
+
+@app.patch("/api/verifications/{verification_id}",
+           response_model=schemas.VerificationOut)
+def update_verification(
+    verification_id: int, payload: schemas.VerificationUpdate, db: Session = Depends(get_db)
+):
+    v = db.get(models.Verification, verification_id)
+    if not v:
+        raise HTTPException(404, "検証項目が見つかりません")
+    data = payload.model_dump(exclude_unset=True)
+    if "category" in data and data["category"] not in verification.CATEGORY_KEYS:
+        raise HTTPException(400, "カテゴリが不正です")
+    if "status" in data and data["status"] not in verification.STATUS_KEYS:
+        raise HTTPException(400, "ステータスが不正です")
+    for key, value in data.items():
+        setattr(v, key, value)
+    # 確認済へ変わったら確認日時を記録、取り消したらクリア
+    if "status" in data:
+        v.verified_at = models._now() if v.status == "verified" else None
+    db.commit()
+    db.refresh(v)
+    return schemas.VerificationOut.model_validate(v)
+
+
+@app.delete("/api/verifications/{verification_id}", status_code=204)
+def delete_verification(verification_id: int, db: Session = Depends(get_db)):
+    v = db.get(models.Verification, verification_id)
+    if not v:
+        raise HTTPException(404, "検証項目が見つかりません")
+    db.delete(v)
     db.commit()
 
 
@@ -304,6 +407,11 @@ def run_match(
                                    emp_weights=emp_w, cand_weights=cand_w)
 
     talent_by_id = {t.id: t for t in talents}
+    # 検証項目を一括ロード（候補ごとの信頼度サマリ用）
+    verifs = db.scalars(select(models.Verification)).all()
+    verifs_by_talent: dict[int, list[models.Verification]] = {}
+    for v in verifs:
+        verifs_by_talent.setdefault(v.talent_id, []).append(v)
     candidates: list[schemas.MatchCandidate] = []
     for result in ranked:
         talent = talent_by_id[result.talent_id]
@@ -333,6 +441,7 @@ def run_match(
                 reason=reason,
                 source=source,
                 visa=visa.assess_for_match(job, talent),
+                trust=verification.compute_trust(verifs_by_talent.get(talent.id, [])),
             )
         )
     if req.persist:

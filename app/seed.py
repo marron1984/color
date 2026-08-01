@@ -251,11 +251,44 @@ def _populate(db) -> None:
     """CLIENTS / TALENTS / JOBS を DB に投入する."""
     clients = [models.Client(**c) for c in CLIENTS]
     db.add_all(clients)
-    db.add_all(models.Talent(**t) for t in TALENTS)
+    talents = [models.Talent(**t) for t in TALENTS]
+    db.add_all(talents)
     db.commit()
 
     for ci, job in JOBS:
         db.add(models.Job(client_id=clients[ci].id, **job))
+    db.commit()
+
+    _populate_verifications(db, talents)
+
+
+def _populate_verifications(db, talents) -> None:
+    """先頭の人材に検証項目のデモを投入（検証レイヤーを可視化）."""
+    if not talents:
+        return
+    now = models._now()
+    t0 = talents[0]
+    demo = [
+        dict(category="identity", item="パスポート", status="verified",
+             method="document", verified_by="吉田", verified_at=now,
+             evidence="パスポート画像 受領"),
+        dict(category="work_history", item="前職 在籍確認", status="verified",
+             method="reference_call", verified_by="吉田", verified_at=now,
+             note="店長へ電話確認済み"),
+        dict(category="skill", item="実技（調理）動画", status="pending",
+             method="test"),
+        dict(category="certification", item="調理師免許", status="verified",
+             method="document", verified_by="吉田", verified_at=now),
+        dict(category="language", item="語学証明", status="pending",
+             method="document"),
+    ]
+    for d in demo:
+        db.add(models.Verification(talent_id=t0.id, **d))
+    # 2人目にも軽く1件
+    if len(talents) > 1:
+        db.add(models.Verification(
+            talent_id=talents[1].id, category="identity", item="在留カード",
+            status="verified", method="document", verified_by="吉田", verified_at=now))
     db.commit()
 
 
@@ -264,6 +297,7 @@ def run() -> None:
     init_db()
     db = SessionLocal()
     try:
+        db.query(models.Verification).delete()
         db.query(models.Match).delete()
         db.query(models.Job).delete()
         db.query(models.Talent).delete()

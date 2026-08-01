@@ -510,6 +510,39 @@
   </main>
 
   <div id="toast" class="toast"></div>
+
+  <!-- ========== 検証（信頼性の裏取り）モーダル ========== -->
+  <div id="verify-modal" class="modal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="vm-title">
+      <div class="modal-head">
+        <div>
+          <h2 id="vm-title">経歴・スキルの検証</h2>
+          <p class="hint" id="vm-sub">本人確認・職歴・スキル・語学・資格などの裏取り状況を記録します。</p>
+        </div>
+        <button class="ghost" data-close aria-label="閉じる">✕</button>
+      </div>
+      <div id="vm-trust" class="vm-trust"></div>
+      <form id="verify-form" class="vm-form">
+        <div class="vm-form-row">
+          <label>カテゴリ<select name="category" id="vm-category"></select></label>
+          <label>状態<select name="status" id="vm-status"></select></label>
+          <label>確認方法<select name="method" id="vm-method"></select></label>
+        </div>
+        <div class="vm-form-row">
+          <label class="vm-grow">対象<input name="item" placeholder="例: 調理師免許 / ○○レストラン 在籍確認" /></label>
+          <label class="vm-grow">証跡（URL・書類名・メモ）<input name="evidence" placeholder="例: 免許証コピー received 2026-07-30" /></label>
+        </div>
+        <div class="vm-form-row">
+          <label>確認担当者<input name="verified_by" placeholder="例: 吉田" /></label>
+          <label class="vm-grow">備考<input name="note" placeholder="補足・相違内容など" /></label>
+          <button type="submit" class="primary">＋ 検証を追加</button>
+        </div>
+      </form>
+      <div id="vm-list" class="vm-list"></div>
+    </div>
+  </div>
+
   <script src="/static/app.js"></script>
 </body>
 </html>

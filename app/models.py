@@ -103,6 +103,36 @@ class Talent(Base):
     matches: Mapped[list["Match"]] = relationship(
         back_populates="talent", cascade="all, delete-orphan"
     )
+    verifications: Mapped[list["Verification"]] = relationship(
+        back_populates="talent", cascade="all, delete-orphan"
+    )
+
+
+class Verification(Base):
+    """人材の"検証"項目（信頼性の裏取り・エビデンス管理）.
+
+    本人確認・職歴・スキル・語学・資格・学歴・ビザ書類・リファレンスなどを、
+    どの方法で確認し、どの状態か（未検証/確認中/確認済/相違あり）を記録する。
+    """
+
+    __tablename__ = "verifications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    talent_id: Mapped[int] = mapped_column(ForeignKey("talents.id"), nullable=False)
+    # identity / work_history / skill / language / certification / visa_document / education / reference
+    category: Mapped[str] = mapped_column(String(30), default="identity")
+    item: Mapped[str] = mapped_column(String(200), default="")  # 具体的な対象（例: 調理師免許）
+    # unverified / pending / verified / mismatch
+    status: Mapped[str] = mapped_column(String(20), default="unverified")
+    # document / interview / test / reference_call / third_party / other
+    method: Mapped[str] = mapped_column(String(30), default="")
+    evidence: Mapped[str] = mapped_column(Text, default="")   # 証跡（URL・書類名・メモ）
+    verified_by: Mapped[str] = mapped_column(String(100), default="")  # 確認担当者
+    verified_at: Mapped[_dt.datetime | None] = mapped_column(DateTime, nullable=True)
+    note: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
+
+    talent: Mapped["Talent"] = relationship(back_populates="verifications")
 
 
 class Job(Base):

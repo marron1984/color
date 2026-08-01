@@ -500,3 +500,80 @@ button.ghost:hover { color: var(--danger); border-color: var(--danger); backgrou
 @media (hover: none) {
   button.primary:hover { transform: none; }
 }
+
+/* ===== 検証（信頼性の裏取り） ===== */
+/* 検証バッジ（人材カード・マッチ結果） */
+.trust-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+  border: 1px solid var(--border-strong); background: #eef2f8; color: var(--muted);
+  vertical-align: middle; white-space: nowrap;
+}
+.trust-badge.green { background: var(--accent-2-soft); color: #0e8a68; border-color: #b7e6d6; }
+.trust-badge.blue  { background: var(--accent-soft); color: var(--accent); border-color: #bcd2ff; }
+.trust-badge.warn  { background: var(--warn-soft); color: #8a5300; border-color: #f4d9a8; }
+.trust-badge.gray  { background: #eef2f8; color: var(--muted); border-color: var(--border-strong); }
+.trust-warn { color: var(--danger); font-weight: 800; }
+
+/* モーダル */
+.modal { position: fixed; inset: 0; z-index: 100; display: flex; align-items: flex-start; justify-content: center; }
+.modal[hidden] { display: none; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(28, 45, 74, .45); }
+.modal-panel {
+  position: relative; margin: 40px 16px; width: 100%; max-width: 720px; max-height: 88vh; overflow-y: auto;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(24, 45, 82, .28); padding: 20px 22px;
+}
+body.modal-open { overflow: hidden; }
+.modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+.modal-head h2 { margin: 0 0 4px; font-size: 17px; }
+.modal-head .hint { margin: 0; }
+
+/* 検証スコアサマリ */
+.vm-trust { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; }
+.vm-score-row { display: flex; align-items: center; gap: 16px; }
+.vm-score { font-size: 34px; font-weight: 800; line-height: 1; color: var(--muted); }
+.vm-score span { font-size: 14px; font-weight: 700; color: var(--muted); margin-left: 2px; }
+.vm-score.green { color: #0e8a68; } .vm-score.blue { color: var(--accent); }
+.vm-score.warn { color: var(--warn); } .vm-score.gray { color: var(--muted); }
+.vm-level { font-size: 13px; font-weight: 800; }
+.vm-level.green { color: #0e8a68; } .vm-level.blue { color: var(--accent); }
+.vm-level.warn { color: #8a5300; } .vm-level.gray { color: var(--muted); }
+.vm-cats { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.vm-cat { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--border-strong); background: #fff; color: var(--muted); }
+.vm-cat.green { background: var(--accent-2-soft); color: #0e8a68; border-color: #b7e6d6; }
+.vm-cat.warn  { background: var(--warn-soft); color: #8a5300; border-color: #f4d9a8; }
+.vm-cat.danger { background: var(--danger-soft); color: var(--danger); border-color: #f5c2c4; }
+.vm-cat.gray  { background: #f2f5fa; color: var(--muted); }
+.vm-mismatch { margin-top: 10px; font-size: 12.5px; font-weight: 700; color: var(--danger); background: var(--danger-soft); border: 1px solid #f5c2c4; border-radius: 8px; padding: 8px 10px; }
+
+/* 追加フォーム */
+.vm-form { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px 2px; margin-bottom: 16px; }
+.vm-form-row { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; }
+.vm-form-row label { flex: 0 0 auto; }
+.vm-form-row .vm-grow { flex: 1 1 200px; }
+.vm-form-row button.primary { margin-bottom: 12px; }
+
+/* 検証項目リスト */
+.vm-list { display: flex; flex-direction: column; gap: 10px; }
+.vm-item { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.vm-item-main { display: flex; gap: 10px; align-items: flex-start; flex: 1; min-width: 0; }
+.vm-badge { flex-shrink: 0; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: #eef2f8; color: var(--muted); border: 1px solid var(--border-strong); }
+.vm-badge.green { background: var(--accent-2-soft); color: #0e8a68; border-color: #b7e6d6; }
+.vm-badge.warn { background: var(--warn-soft); color: #8a5300; border-color: #f4d9a8; }
+.vm-badge.danger { background: var(--danger-soft); color: var(--danger); border-color: #f5c2c4; }
+.vm-badge.gray { background: #eef2f8; color: var(--muted); }
+.vm-item-title { font-size: 13.5px; font-weight: 700; color: var(--text); }
+.vm-method-tag { font-size: 10.5px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 1px 6px; margin-left: 6px; }
+.vm-when { font-size: 11px; color: var(--muted); margin-left: 6px; font-weight: 600; }
+.vm-item-sub { font-size: 12px; color: var(--muted); margin-top: 3px; word-break: break-word; }
+.vm-item-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; flex-shrink: 0; }
+.vm-item-actions select { margin: 0; }
+
+@media (max-width: 640px) {
+  .modal-panel { margin: 12px 8px; padding: 16px; max-height: 92vh; }
+  .vm-score-row { gap: 12px; }
+  .vm-form-row label, .vm-form-row .vm-grow { flex: 1 1 100%; }
+  .vm-item { flex-direction: column; }
+  .vm-item-actions { flex-direction: row; align-self: stretch; justify-content: space-between; }
+}

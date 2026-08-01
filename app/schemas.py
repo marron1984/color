@@ -109,6 +109,42 @@ class TalentOut(TalentBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
     created_at: _dt.datetime
+    trust: dict[str, Any] | None = None  # 検証スコア（信頼度サマリ）
+
+
+# --------------------------------------------------------------------------- #
+# Verification（検証レイヤー）
+# --------------------------------------------------------------------------- #
+class VerificationBase(_CoerceBase):
+    category: str = "identity"
+    item: str = ""
+    status: str = "unverified"
+    method: str = ""
+    evidence: str = ""
+    verified_by: str = ""
+    note: str = ""
+
+
+class VerificationCreate(VerificationBase):
+    pass
+
+
+class VerificationUpdate(BaseModel):
+    category: str | None = None
+    item: str | None = None
+    status: str | None = None
+    method: str | None = None
+    evidence: str | None = None
+    verified_by: str | None = None
+    note: str | None = None
+
+
+class VerificationOut(VerificationBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    talent_id: int
+    verified_at: _dt.datetime | None = None
+    created_at: _dt.datetime
 
 
 # --------------------------------------------------------------------------- #
@@ -209,6 +245,7 @@ class MatchCandidate(BaseModel):
     reason: str
     source: str
     visa: dict[str, Any] | None = None  # ビザ適格性判定
+    trust: dict[str, Any] | None = None  # 検証スコア（信頼度サマリ）
 
 
 class VisaAssessRequest(BaseModel):

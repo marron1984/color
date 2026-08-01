@@ -220,12 +220,13 @@ async function loadTalents() {
     el.innerHTML = `
       <div class="card-head">
         <div>
-          <div class="card-title">${esc(t.name)} <span class="card-meta">${esc(t.kana || "")}</span></div>
+          <div class="card-title">${esc(t.name)} <span class="card-meta">${esc(t.kana || "")}</span> ${trustBadge(t.trust)}</div>
           <div class="card-meta">経験${t.experience_years}年 ／ 希望${t.desired_salary}万 ／ ${esc(t.type_os || "-")} ／ ${esc(t.location || "-")} ／ ${WORK_STYLE_JA[t.work_style] || t.work_style}</div>
           ${natVisa ? `<div class="card-meta">${natVisa}</div>` : ""}
         </div>
         <div class="card-actions">
           <button class="ghost" data-edit="${t.id}">編集</button>
+          <button class="ghost" data-verify="${t.id}">検証</button>
           <button class="ghost" data-contact="${t.id}">連絡先</button>
           <button class="ghost" data-del="${t.id}">削除</button>
         </div>
@@ -235,6 +236,7 @@ async function loadTalents() {
       ${t.profile ? `<div class="card-meta">${esc(t.profile)}</div>` : ""}
       ${contactBlock(t)}`;
     el.querySelector("[data-edit]").onclick = () => editTalent(t);
+    el.querySelector("[data-verify]").onclick = () => openVerification(t);
     el.querySelector("[data-del]").onclick = async () => {
       if (!confirm("削除しますか？")) return;
       await api(`/api/talents/${t.id}`, { method: "DELETE" });
@@ -531,7 +533,7 @@ function renderMatches(candidates) {
       <div class="match-body">
         <div class="match-top">
           <div>
-            <div class="match-name">${esc(t.name)} <span class="card-meta">${esc(t.type_os || "")} ／ 経験${t.experience_years}年${t.nationality ? " ／ " + esc(t.nationality) : ""}${(t.languages || []).length ? " ／ " + (t.languages || []).map(l => esc(l.name)).join("・") : ""}</span></div>
+            <div class="match-name">${esc(t.name)} <span class="card-meta">${esc(t.type_os || "")} ／ 経験${t.experience_years}年${t.nationality ? " ／ " + esc(t.nationality) : ""}${(t.languages || []).length ? " ／ " + (t.languages || []).map(l => esc(l.name)).join("・") : ""}</span> ${trustBadge(c.trust)}</div>
           </div>
           <div class="score-pill ${scoreCls}">${c.score}</div>
         </div>
@@ -541,6 +543,7 @@ function renderMatches(candidates) {
         ${groups}
         <div class="match-actions">
           <button class="ghost" data-detail="${t.id}">個人情報・連絡先を表示</button>
+          <button class="ghost" data-verify="${t.id}">検証</button>
           <button class="secondary" data-save="${t.id}">＋採用管理に保存</button>
         </div>
         ${personalInfoBlock(t)}
@@ -552,6 +555,7 @@ function renderMatches(candidates) {
       dblock.toggleAttribute("hidden");
       dbtn.textContent = hidden ? "個人情報・連絡先を隠す" : "個人情報・連絡先を表示";
     };
+    el.querySelector("[data-verify]").onclick = () => openVerification(t);
     const sbtn = el.querySelector("[data-save]");
     sbtn.onclick = async () => {
       if (!currentMatchJobId) { toast("求人が特定できません", true); return; }
@@ -584,6 +588,136 @@ function personalInfoBlock(t) {
   ].filter(Boolean).join("");
   return `<div class="contact-block" hidden>${rows || '<div class="contact-empty">登録情報がありません</div>'}</div>`;
 }
+
+// ---------- 検証（信頼性の裏取り） ----------
+const TRUST_CLS = { strong: "green", standard: "blue", basic: "warn", unverified: "gray" };
+const VSTATUS_CLS = { verified: "green", pending: "warn", mismatch: "danger", unverified: "gray" };
+
+// 検証スコアのバッジ（人材カード・マッチ結果に表示）
+function trustBadge(trust) {
+  if (!trust) return "";
+  const cls = TRUST_CLS[trust.level] || "gray";
+  const warn = trust.has_mismatch ? ' <span class="trust-warn">⚠相違</span>' : "";
+  const title = `検証 ${trust.verified_count}/${trust.categories.length}項目・スコア${trust.score}`;
+  return `<span class="trust-badge ${cls}" title="${title}">🔎 検証 ${trust.score}・${esc(trust.level_label)}${warn}</span>`;
+}
+
+let VERIFY_META = null;
+let currentVerifyTalent = null;
+
+async function loadVerifyMeta() {
+  if (VERIFY_META) return VERIFY_META;
+  VERIFY_META = await api("/api/verifications/meta");
+  const opt = (o) => `<option value="${o.key}">${esc(o.label)}</option>`;
+  document.getElementById("vm-category").innerHTML = VERIFY_META.categories.map(opt).join("");
+  document.getElementById("vm-status").innerHTML = VERIFY_META.statuses.map(opt).join("");
+  document.getElementById("vm-method").innerHTML =
+    '<option value="">（未選択）</option>' + VERIFY_META.methods.map(opt).join("");
+  return VERIFY_META;
+}
+function metaLabel(kind, key) {
+  if (!VERIFY_META || !key) return key || "";
+  const found = (VERIFY_META[kind] || []).find(o => o.key === key);
+  return found ? found.label : key;
+}
+
+async function openVerification(talent) {
+  currentVerifyTalent = talent;
+  await loadVerifyMeta();
+  document.getElementById("vm-title").textContent = `検証：${talent.name}`;
+  document.getElementById("verify-modal").hidden = false;
+  document.body.classList.add("modal-open");
+  await loadVerifications();
+}
+function closeVerification() {
+  document.getElementById("verify-modal").hidden = true;
+  document.body.classList.remove("modal-open");
+  currentVerifyTalent = null;
+  // 一覧のバッジを最新化
+  loadTalents();
+}
+
+async function loadVerifications() {
+  if (!currentVerifyTalent) return;
+  const data = await api(`/api/talents/${currentVerifyTalent.id}/verifications`);
+  renderVmTrust(data.trust);
+  renderVmList(data.items);
+}
+
+function renderVmTrust(t) {
+  const cls = TRUST_CLS[t.level] || "gray";
+  const cats = t.categories.map(c =>
+    `<span class="vm-cat ${VSTATUS_CLS[c.status] || "gray"}" title="重み${c.weight}">${esc(c.label)}: ${esc(c.status_label)}</span>`
+  ).join("");
+  const warn = t.has_mismatch ? `<div class="vm-mismatch">⚠ 相違ありの項目があります。内容をご確認ください。</div>` : "";
+  document.getElementById("vm-trust").innerHTML = `
+    <div class="vm-score-row">
+      <div class="vm-score ${cls}">${t.score}<span>/100</span></div>
+      <div class="vm-score-meta">
+        <div class="vm-level ${cls}">${esc(t.level_label)}</div>
+        <div class="hint">確認済 ${t.verified_count} ／ 確認中 ${t.pending_count} ／ 全 ${t.total_items} 項目</div>
+      </div>
+    </div>
+    <div class="vm-cats">${cats}</div>${warn}`;
+}
+
+function renderVmList(items) {
+  const list = document.getElementById("vm-list");
+  if (!items.length) {
+    list.innerHTML = '<div class="empty">検証項目はまだありません。上のフォームから追加してください。</div>';
+    return;
+  }
+  list.innerHTML = "";
+  for (const v of items) {
+    const el = document.createElement("div");
+    el.className = "vm-item";
+    const statusOpts = VERIFY_META.statuses.map(s =>
+      `<option value="${s.key}" ${v.status === s.key ? "selected" : ""}>${esc(s.label)}</option>`).join("");
+    const when = v.verified_at ? `<span class="vm-when">確認 ${esc(v.verified_at.slice(0, 10))}</span>` : "";
+    el.innerHTML = `
+      <div class="vm-item-main">
+        <span class="vm-badge ${VSTATUS_CLS[v.status] || "gray"}">${esc(metaLabel("categories", v.category))}</span>
+        <div class="vm-item-body">
+          <div class="vm-item-title">${esc(v.item || "（対象未記入）")}
+            ${v.method ? `<span class="vm-method-tag">${esc(metaLabel("methods", v.method))}</span>` : ""}${when}</div>
+          ${v.evidence ? `<div class="vm-item-sub">証跡: ${esc(v.evidence)}</div>` : ""}
+          ${v.note ? `<div class="vm-item-sub">${esc(v.note)}</div>` : ""}
+          ${v.verified_by ? `<div class="vm-item-sub">担当: ${esc(v.verified_by)}</div>` : ""}
+        </div>
+      </div>
+      <div class="vm-item-actions">
+        <select data-vstatus="${v.id}">${statusOpts}</select>
+        <button class="ghost" data-vdel="${v.id}">削除</button>
+      </div>`;
+    el.querySelector("[data-vstatus]").onchange = async e => {
+      await api(`/api/verifications/${v.id}`, { method: "PATCH", body: JSON.stringify({ status: e.target.value }) });
+      loadVerifications();
+    };
+    el.querySelector("[data-vdel]").onclick = async () => {
+      if (!confirm("この検証項目を削除しますか？")) return;
+      await api(`/api/verifications/${v.id}`, { method: "DELETE" });
+      toast("削除しました"); loadVerifications();
+    };
+    list.appendChild(el);
+  }
+}
+
+document.getElementById("verify-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!currentVerifyTalent) return;
+  const payload = Object.fromEntries(new FormData(e.target));
+  try {
+    await api(`/api/talents/${currentVerifyTalent.id}/verifications`,
+      { method: "POST", body: JSON.stringify(payload) });
+    e.target.reset();
+    toast("検証を追加しました"); loadVerifications();
+  } catch (err) { toast(err.message, true); }
+});
+document.querySelectorAll("#verify-modal [data-close]").forEach(el =>
+  el.addEventListener("click", closeVerification));
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !document.getElementById("verify-modal").hidden) closeVerification();
+});
 
 // ---------- 共通 ----------
 function esc(s) {
