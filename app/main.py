@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import ai, matching, models, resume, schemas, visa
+from app import ai, learning, matching, models, resume, schemas, visa
 from app.database import IS_PERSISTENT, USING_EXTERNAL, get_db, init_db
 
 app = FastAPI(
@@ -296,7 +296,12 @@ def run_match(
         raise HTTPException(404, "求人が見つかりません")
 
     talents = db.scalars(select(models.Talent)).all()
-    ranked = matching.rank_talents(job, talents, top_n=req.top_n)
+    emp_w = cand_w = None
+    if req.use_learned:
+        lw = learning.learned_weights(db.scalars(select(models.Match)).all())
+        emp_w, cand_w = lw["emp"], lw["cand"]
+    ranked = matching.rank_talents(job, talents, top_n=req.top_n,
+                                   emp_weights=emp_w, cand_weights=cand_w)
 
     talent_by_id = {t.id: t for t in talents}
     candidates: list[schemas.MatchCandidate] = []
@@ -335,6 +340,49 @@ def run_match(
     return candidates
 
 
+def _match_out(m: models.Match) -> schemas.MatchOut:
+    mo = schemas.MatchOut.model_validate(m)
+    mo.talent = schemas.TalentOut.model_validate(m.talent) if m.talent else None
+    mo.job_title = m.job.title if m.job else None
+    mo.client_name = m.job.client.name if (m.job and m.job.client) else None
+    return mo
+
+
+@app.get("/api/matches", response_model=list[schemas.MatchOut])
+def list_all_matches(db: Session = Depends(get_db)):
+    """保存済みマッチング（採用管理）を全件返す。"""
+    matches = db.scalars(select(models.Match).order_by(models.Match.id.desc())).all()
+    return [_match_out(m) for m in matches]
+
+
+@app.post("/api/matches", response_model=schemas.MatchOut, status_code=201)
+def create_match(payload: schemas.MatchCreate, db: Session = Depends(get_db)):
+    """候補を採用管理（パイプライン）に保存する。"""
+    job = db.get(models.Job, payload.job_id)
+    talent = db.get(models.Talent, payload.talent_id)
+    if not job or not talent:
+        raise HTTPException(404, "求人または人材が見つかりません")
+    existing = db.scalar(
+        select(models.Match).where(
+            models.Match.job_id == payload.job_id,
+            models.Match.talent_id == payload.talent_id,
+        )
+    )
+    if existing:
+        return _match_out(existing)
+    result = matching.score_talent(job, talent)
+    breakdown = result.breakdown()
+    reason, source = ai._template_reason(job, talent, breakdown), "scoring"
+    match = models.Match(
+        job_id=job.id, talent_id=talent.id, score=round(result.total, 1),
+        breakdown=breakdown, reason=reason, source=source, status="proposed",
+    )
+    db.add(match)
+    db.commit()
+    db.refresh(match)
+    return _match_out(match)
+
+
 @app.get("/api/jobs/{job_id}/matches", response_model=list[schemas.MatchOut])
 def list_matches(job_id: int, db: Session = Depends(get_db)):
     matches = db.scalars(
@@ -342,30 +390,52 @@ def list_matches(job_id: int, db: Session = Depends(get_db)):
         .where(models.Match.job_id == job_id)
         .order_by(models.Match.score.desc())
     ).all()
-    out = []
-    for m in matches:
-        mo = schemas.MatchOut.model_validate(m)
-        mo.talent = schemas.TalentOut.model_validate(m.talent) if m.talent else None
-        out.append(mo)
-    return out
+    return [_match_out(m) for m in matches]
 
 
 @app.patch("/api/matches/{match_id}", response_model=schemas.MatchOut)
-def update_match_status(
-    match_id: int, payload: schemas.MatchStatusUpdate, db: Session = Depends(get_db)
-):
+def update_match(match_id: int, payload: schemas.MatchUpdate, db: Session = Depends(get_db)):
     match = db.get(models.Match, match_id)
     if not match:
         raise HTTPException(404, "マッチングが見つかりません")
-    valid = {"proposed", "interview", "offer", "hired", "rejected"}
-    if payload.status not in valid:
-        raise HTTPException(400, f"status は {valid} のいずれか")
-    match.status = payload.status
+    if payload.status is not None:
+        valid = {"proposed", "interview", "offer", "hired", "rejected"}
+        if payload.status not in valid:
+            raise HTTPException(400, f"status は {valid} のいずれか")
+        match.status = payload.status
+        if payload.status == "hired" and match.hired_at is None:
+            import datetime as _dt
+            match.hired_at = _dt.datetime.now(_dt.timezone.utc)
+    if payload.retention is not None:
+        if payload.retention not in {"", "active", "left"}:
+            raise HTTPException(400, "retention は active / left / 空")
+        match.retention = payload.retention
+    if payload.retention_days is not None:
+        match.retention_days = int(payload.retention_days)
+    if payload.left_reason is not None:
+        match.left_reason = payload.left_reason
     db.commit()
     db.refresh(match)
-    mo = schemas.MatchOut.model_validate(match)
-    mo.talent = schemas.TalentOut.model_validate(match.talent) if match.talent else None
-    return mo
+    return _match_out(match)
+
+
+@app.delete("/api/matches/{match_id}", status_code=204)
+def delete_match(match_id: int, db: Session = Depends(get_db)):
+    match = db.get(models.Match, match_id)
+    if not match:
+        raise HTTPException(404, "マッチングが見つかりません")
+    db.delete(match)
+    db.commit()
+
+
+@app.get("/api/learning")
+def get_learning(db: Session = Depends(get_db)) -> dict:
+    """アウトカム学習の状況（指標・重要度・学習重み）を返す。"""
+    matches = db.scalars(select(models.Match)).all()
+    return {
+        "metrics": learning.compute_metrics(matches),
+        "learned": learning.learned_weights(matches),
+    }
 
 
 # --------------------------------------------------------------------------- #

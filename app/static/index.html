@@ -33,6 +33,7 @@
     <button class="tab" data-tab="jobs"><span class="tab-ico">📋</span><span class="tab-txt">求人</span></button>
     <button class="tab" data-tab="talents"><span class="tab-ico">🧑‍🍳</span><span class="tab-txt">人材</span></button>
     <button class="tab" data-tab="clients"><span class="tab-ico">🏬</span><span class="tab-txt">店舗</span></button>
+    <button class="tab" data-tab="pipeline"><span class="tab-ico">📈</span><span class="tab-txt">採用管理</span></button>
   </nav>
 
   <datalist id="positions">
@@ -203,10 +204,28 @@
           <label class="checkbox">
             <input id="match-llm" type="checkbox" checked /> AI 推薦理由を生成
           </label>
+          <label class="checkbox" title="採用・定着の実績から学習した重みで評価します">
+            <input id="match-learned" type="checkbox" /> 学習した重みで評価
+          </label>
           <button id="run-match" class="primary">ピックアップ実行</button>
         </div>
       </div>
       <div id="match-results" class="results"></div>
+    </section>
+
+    <!-- ========== 採用管理（アウトカム学習） ========== -->
+    <section id="tab-pipeline" class="tab-panel">
+      <div id="pl-metrics"></div>
+      <div class="panel">
+        <h2>アウトカム学習</h2>
+        <p class="hint">採用・定着の実績から「成功した採用に効いた観点」を学習します。データが増えるほどマッチングに反映されます（マッチング画面の「学習した重みで評価」をオン）。</p>
+        <div id="pl-learning"></div>
+      </div>
+      <div class="panel">
+        <h2>選考・採用パイプライン</h2>
+        <p class="hint">マッチング結果の「採用管理に保存」で候補を登録すると、ここで進捗（提案→面接→内定→採用）と定着を管理できます。</p>
+        <div id="pl-list" class="list"></div>
+      </div>
     </section>
 
     <!-- ========== 求人 ========== -->

@@ -161,6 +161,11 @@ class Match(Base):
     source: Mapped[str] = mapped_column(String(20), default="scoring")  # scoring / ai
     # proposed / interview / offer / hired / rejected
     status: Mapped[str] = mapped_column(String(20), default="proposed")
+    # --- アウトカム（定着トラッキング） ---
+    hired_at: Mapped[_dt.datetime | None] = mapped_column(DateTime, nullable=True)  # 採用日
+    retention: Mapped[str] = mapped_column(String(20), default="")   # active(在籍) / left(離職)
+    retention_days: Mapped[int] = mapped_column(Integer, default=0)  # 在籍/在籍していた日数
+    left_reason: Mapped[str] = mapped_column(Text, default="")       # 離職理由
     created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
 
     job: Mapped["Job"] = relationship(back_populates="matches")

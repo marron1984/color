@@ -100,6 +100,7 @@ function showTab(name) {
   const panel = document.getElementById("tab-" + name);
   if (panel) panel.classList.add("active");
   if (name === "dashboard" && typeof loadDashboard === "function") loadDashboard();
+  if (name === "pipeline" && typeof loadPipeline === "function") loadPipeline();
 }
 document.querySelectorAll(".tab").forEach(btn => {
   btn.addEventListener("click", () => showTab(btn.dataset.tab));
@@ -424,6 +425,7 @@ function editJob(j) {
 
 // 求人カードから直接マッチングを実行
 function matchJob(jobId) {
+  currentMatchJobId = String(jobId);
   const sel = document.getElementById("match-job");
   sel.value = String(jobId);
   showTab("match");
@@ -451,17 +453,20 @@ document.getElementById("job-form").addEventListener("submit", async e => {
 });
 
 // ---------- マッチング ----------
+let currentMatchJobId = null;
 document.getElementById("run-match").addEventListener("click", async () => {
   const jobId = document.getElementById("match-job").value;
   if (!jobId) { toast("求人を選択してください", true); return; }
+  currentMatchJobId = jobId;
   const topN = parseInt(document.getElementById("match-topn").value || "5", 10);
   const useLlm = document.getElementById("match-llm").checked;
+  const useLearned = document.getElementById("match-learned").checked;
   const container = document.getElementById("match-results");
   container.innerHTML = '<div class="empty">AI がピックアップ中…</div>';
   try {
     const candidates = await api(`/api/jobs/${jobId}/match`, {
       method: "POST",
-      body: JSON.stringify({ top_n: topN, use_llm: useLlm, persist: false }),
+      body: JSON.stringify({ top_n: topN, use_llm: useLlm, persist: false, use_learned: useLearned }),
     });
     renderMatches(candidates);
   } catch (err) {
@@ -536,6 +541,7 @@ function renderMatches(candidates) {
         ${groups}
         <div class="match-actions">
           <button class="ghost" data-detail="${t.id}">個人情報・連絡先を表示</button>
+          <button class="secondary" data-save="${t.id}">＋採用管理に保存</button>
         </div>
         ${personalInfoBlock(t)}
       </div>`;
@@ -545,6 +551,16 @@ function renderMatches(candidates) {
       const hidden = dblock.hasAttribute("hidden");
       dblock.toggleAttribute("hidden");
       dbtn.textContent = hidden ? "個人情報・連絡先を隠す" : "個人情報・連絡先を表示";
+    };
+    const sbtn = el.querySelector("[data-save]");
+    sbtn.onclick = async () => {
+      if (!currentMatchJobId) { toast("求人が特定できません", true); return; }
+      try {
+        await api("/api/matches", { method: "POST",
+          body: JSON.stringify({ job_id: parseInt(currentMatchJobId, 10), talent_id: t.id }) });
+        sbtn.textContent = "✓ 保存済み"; sbtn.disabled = true;
+        toast("採用管理に保存しました");
+      } catch (err) { toast(err.message, true); }
     };
     container.appendChild(el);
   });
@@ -657,6 +673,112 @@ async function loadDashboard() {
     });
   } catch (err) {
     root.innerHTML = `<div class="empty">読み込みに失敗しました: ${esc(err.message)}</div>`;
+  }
+}
+
+// ---------- 採用管理（アウトカム学習） ----------
+const STATUS_JA = { proposed: "提案", interview: "面接", offer: "内定", hired: "採用", rejected: "不採用" };
+const STATUS_OPTS = ["proposed", "interview", "offer", "hired", "rejected"];
+
+async function patchMatch(id, body) {
+  await api(`/api/matches/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+function renderPlMetrics(m) {
+  const tile = (num, unit, label, sub, cls) => `
+    <div class="kpi ${cls || ""}">
+      <div class="kpi-num">${num}<span class="unit">${unit}</span></div>
+      <div class="kpi-label">${label}</div>${sub ? `<div class="kpi-sub">${sub}</div>` : ""}
+    </div>`;
+  document.getElementById("pl-metrics").innerHTML = `<div class="kpi-row">
+    ${tile(m.total, "件", "📈 保存中の候補", "選考パイプライン")}
+    ${tile(m.hired, "名", "採用", `在籍 ${m.active} ／ 離職 ${m.left}`, "kpi-accent")}
+    ${tile(m.retention_rate == null ? "–" : m.retention_rate, "%", "定着率",
+      m.avg_retention_days ? `平均在籍 ${m.avg_retention_days} 日` : "", "kpi-green")}
+    ${tile(m.decision_rate == null ? "–" : m.decision_rate, "%", "決定率", "採用/(採用+不採用)")}
+  </div>`;
+}
+
+function renderPlLearning(L) {
+  const el = document.getElementById("pl-learning");
+  if (!L.n_labeled) {
+    el.innerHTML = '<div class="db-empty">まだ学習データがありません。採用・不採用・定着の結果を記録すると、成功に効いた観点を学習します。</div>';
+    return;
+  }
+  const imp = Object.entries(L.importances)
+    .map(([k, v]) => ({ label: L.labels[k] || k, v }))
+    .sort((a, b) => b.v - a.v);
+  const rows = imp.map(i => {
+    const w = Math.min(100, Math.abs(i.v) * 100);
+    const cls = i.v > 0.02 ? "pos" : (i.v < -0.02 ? "neg" : "zero");
+    return `<div class="imp-row">
+      <div class="imp-label">${esc(i.label)}</div>
+      <div class="imp-track"><div class="imp-fill ${cls}" style="width:${w.toFixed(0)}%"></div></div>
+      <div class="imp-val">${i.v > 0 ? "+" : ""}${i.v}</div>
+    </div>`;
+  }).join("");
+  el.innerHTML = `
+    <div class="pl-conf">学習の信頼度: <b>${Math.round(L.confidence * 100)}%</b>
+      （実績 ${L.n_labeled} 件 ／ 成功 ${L.n_success}・失敗 ${L.n_failure}）</div>
+    <div class="imp-title">成功採用への寄与度（観点別）</div>
+    <div class="imp-list">${rows}</div>`;
+}
+
+function renderPlList(matches) {
+  const list = document.getElementById("pl-list");
+  list.innerHTML = matches.length ? "" : '<div class="empty">保存された候補はありません。マッチング結果の「＋採用管理に保存」から追加してください。</div>';
+  for (const m of matches) {
+    const el = document.createElement("div");
+    el.className = "card";
+    const opts = STATUS_OPTS.map(s => `<option value="${s}" ${m.status === s ? "selected" : ""}>${STATUS_JA[s]}</option>`).join("");
+    const hired = m.status === "hired";
+    const retSel = hired ? `
+      <label class="pl-inline">定着
+        <select data-ret="${m.id}">
+          <option value="" ${!m.retention ? "selected" : ""}>未設定</option>
+          <option value="active" ${m.retention === "active" ? "selected" : ""}>在籍中</option>
+          <option value="left" ${m.retention === "left" ? "selected" : ""}>離職</option>
+        </select>
+      </label>
+      <label class="pl-inline">在籍日数<input type="number" data-days="${m.id}" value="${m.retention_days || 0}" /></label>` : "";
+    const leftReason = (hired && m.retention === "left")
+      ? `<label class="pl-inline pl-grow">離職理由<input data-reason="${m.id}" value="${esc(m.left_reason || "")}" /></label>` : "";
+    el.innerHTML = `
+      <div class="card-head">
+        <div>
+          <div class="card-title">${esc(m.talent ? m.talent.name : "?")} <span class="card-meta">適合 ${m.score}</span></div>
+          <div class="card-meta">${esc(m.job_title || "")}（${esc(m.client_name || "")}）</div>
+        </div>
+        <button class="ghost" data-del="${m.id}">削除</button>
+      </div>
+      <div class="pl-controls">
+        <label class="pl-inline">ステータス<select data-status="${m.id}">${opts}</select></label>
+        ${retSel}${leftReason}
+      </div>`;
+    el.querySelector("[data-status]").onchange = async e => { await patchMatch(m.id, { status: e.target.value }); loadPipeline(); };
+    const rs = el.querySelector("[data-ret]");
+    if (rs) rs.onchange = async e => { await patchMatch(m.id, { retention: e.target.value }); loadPipeline(); };
+    const dd = el.querySelector("[data-days]");
+    if (dd) dd.onchange = async e => { await patchMatch(m.id, { retention_days: parseInt(e.target.value || "0", 10) }); loadPipeline(); };
+    const rr = el.querySelector("[data-reason]");
+    if (rr) rr.onchange = async e => { await patchMatch(m.id, { left_reason: e.target.value }); };
+    el.querySelector("[data-del]").onclick = async () => {
+      if (!confirm("この候補を採用管理から削除しますか？")) return;
+      await api(`/api/matches/${m.id}`, { method: "DELETE" });
+      toast("削除しました"); loadPipeline();
+    };
+    list.appendChild(el);
+  }
+}
+
+async function loadPipeline() {
+  try {
+    const [matches, L] = await Promise.all([api("/api/matches"), api("/api/learning")]);
+    renderPlMetrics(L.metrics);
+    renderPlLearning(L.learned);
+    renderPlList(matches);
+  } catch (err) {
+    document.getElementById("pl-list").innerHTML = `<div class="empty">読み込みに失敗しました: ${esc(err.message)}</div>`;
   }
 }
 

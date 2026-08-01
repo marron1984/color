@@ -393,7 +393,9 @@ def _availability_component(job: Any, talent: Any) -> Component:
 # --------------------------------------------------------------------------- #
 # 統合スコアリング（双方向 reciprocal）
 # --------------------------------------------------------------------------- #
-def _score(job: Any, talent: Any, text_score: float) -> MatchResult:
+def _score(job: Any, talent: Any, text_score: float,
+           emp_weights: dict[str, float] | None = None,
+           cand_weights: dict[str, float] | None = None) -> MatchResult:
     skill_comp, gate = _skill_component(job, talent)
     employer = [
         skill_comp,
@@ -408,6 +410,13 @@ def _score(job: Any, talent: Any, text_score: float) -> MatchResult:
         _work_style_component(job, talent),
         _availability_component(job, talent),
     ]
+    # 学習済みの重み等で上書き（指定があれば）
+    if emp_weights:
+        for c in employer:
+            c.weight = emp_weights.get(c.key, c.weight)
+    if cand_weights:
+        for c in candidate:
+            c.weight = cand_weights.get(c.key, c.weight)
     employer_fit = sum(c.weighted for c in employer) * gate
     candidate_fit = sum(c.weighted for c in candidate)
     # 双方向の幾何平均: 片側が低いと総合も伸びない（＝成立しやすさ）
@@ -427,12 +436,15 @@ def score_talent(job: Any, talent: Any) -> MatchResult:
     return _score(job, talent, text)
 
 
-def rank_talents(job: Any, talents: list[Any], top_n: int | None = None) -> list[MatchResult]:
+def rank_talents(job: Any, talents: list[Any], top_n: int | None = None,
+                 emp_weights: dict[str, float] | None = None,
+                 cand_weights: dict[str, float] | None = None) -> list[MatchResult]:
     """求人に対して人材群を双方向スコアで並べる.
 
     - 稼働不可 (unavailable) は除外
     - BM25 で職務内容の文章適合を候補集団内で相対評価
     - 候補集団内の相対順位（percentile）を付与
+    - emp_weights/cand_weights を渡すと学習済み重みで評価する
     """
     pool = [t for t in talents if (getattr(t, "availability", "available") or "available") != "unavailable"]
     if not pool:
@@ -444,7 +456,7 @@ def rank_talents(job: Any, talents: list[Any], top_n: int | None = None) -> list
     mx = max(raw) if raw else 0.0
     text_scores = [(r / mx if mx > 0 else 0.5) for r in raw]
 
-    results = [_score(job, t, text_scores[i]) for i, t in enumerate(pool)]
+    results = [_score(job, t, text_scores[i], emp_weights, cand_weights) for i, t in enumerate(pool)]
     results.sort(key=lambda r: r.total, reverse=True)
 
     n = len(results)

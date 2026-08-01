@@ -167,18 +167,37 @@ class JobOut(JobBase):
 # --------------------------------------------------------------------------- #
 # Match
 # --------------------------------------------------------------------------- #
-class MatchOut(BaseModel):
+class MatchOut(_CoerceBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
     job_id: int
     talent_id: int
     score: float
     breakdown: dict[str, Any]
-    reason: str
-    source: str
-    status: str
+    reason: str = ""
+    source: str = ""
+    status: str = "proposed"
+    # アウトカム
+    hired_at: _dt.datetime | None = None
+    retention: str = ""
+    retention_days: int = 0
+    left_reason: str = ""
     created_at: _dt.datetime
     talent: TalentOut | None = None
+    job_title: str | None = None
+    client_name: str | None = None
+
+
+class MatchCreate(BaseModel):
+    job_id: int
+    talent_id: int
+
+
+class MatchUpdate(BaseModel):
+    status: str | None = None
+    retention: str | None = None
+    retention_days: int | None = None
+    left_reason: str | None = None
 
 
 class MatchCandidate(BaseModel):
@@ -205,8 +224,4 @@ class RunMatchRequest(BaseModel):
     top_n: int = Field(default=5, ge=1, le=50)
     use_llm: bool = True  # False にするとスコアリングのみ
     persist: bool = False  # True なら候補を Match として保存
-
-
-class MatchStatusUpdate(BaseModel):
-    # proposed / interview / offer / hired / rejected
-    status: str
+    use_learned: bool = False  # True なら学習済みの重みで評価

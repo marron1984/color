@@ -359,6 +359,34 @@ button.ghost:hover { color: var(--danger); border-color: var(--danger); backgrou
   .db-bar-row { grid-template-columns: 92px 1fr 28px; }
 }
 
+/* 採用管理・アウトカム学習 */
+.pl-conf { font-size: 12.5px; color: var(--muted); margin-bottom: 12px; }
+.pl-conf b { color: var(--text); }
+.imp-title { font-size: 13px; font-weight: 700; color: var(--text); margin: 4px 0 10px; }
+.imp-list { display: flex; flex-direction: column; gap: 8px; }
+.imp-row { display: grid; grid-template-columns: 120px 1fr 52px; align-items: center; gap: 10px; font-size: 12.5px; }
+.imp-label { color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.imp-track { background: #eef2f8; border-radius: 6px; height: 14px; overflow: hidden; }
+.imp-fill { height: 100%; border-radius: 6px; min-width: 3px; }
+.imp-fill.pos { background: #0e8a68; }
+.imp-fill.neg { background: var(--danger); }
+.imp-fill.zero { background: #c3cede; }
+.imp-val { text-align: right; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pl-controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin-top: 10px; }
+.pl-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.pl-inline select, .pl-inline input { margin: 0; }
+.pl-inline input[type="number"] { width: 88px; }
+.pl-grow { flex: 1 1 220px; }
+.pl-grow input { width: 100%; }
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.card-title .card-meta { font-weight: 600; color: var(--muted); font-size: 12px; margin-left: 6px; }
+.btn.ghost, button.ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 5px 12px; cursor: pointer; font-size: 12.5px; }
+.btn.ghost:hover, button.ghost:hover { border-color: var(--danger); color: var(--danger); }
+
+@media (max-width: 640px) {
+  .imp-row { grid-template-columns: 92px 1fr 46px; }
+}
+
 .toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
   background: #fff; border: 1px solid var(--border-strong); color: var(--text);
