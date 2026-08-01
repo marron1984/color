@@ -22,6 +22,35 @@ function toast(msg, isErr = false) {
   setTimeout(() => (t.className = "toast"), 2600);
 }
 
+async function copyText(text) {
+  try {
+    if (navigator.clipboard) { await navigator.clipboard.writeText(text); return true; }
+  } catch (_) {}
+  return false;
+}
+
+// ポータル共有リンク（企業=?c / 候補者=?t）の行を返す
+function portalLinkBlock(kind, token) {
+  if (!token) return "";
+  const url = `${location.origin}/portal?${kind === "client" ? "c" : "t"}=${encodeURIComponent(token)}`;
+  const label = kind === "client" ? "企業ポータル" : "候補者ポータル";
+  return `<div class="portal-link">
+    <span class="pl-ico">🔗</span>
+    <input type="text" readonly value="${esc(url)}" aria-label="${label}リンク" />
+    <button class="secondary" data-copy="${esc(url)}">コピー</button>
+    <a class="ghost" href="${esc(url)}" target="_blank" rel="noopener" style="text-decoration:none">開く</a>
+  </div>`;
+}
+function wirePortalCopy(el) {
+  const btn = el.querySelector("[data-copy]");
+  if (!btn) return;
+  btn.onclick = async () => {
+    const ok = await copyText(btn.dataset.copy);
+    if (ok) { btn.textContent = "✓ コピー済み"; toast("リンクをコピーしました"); setTimeout(() => (btn.textContent = "コピー"), 2000); }
+    else { const inp = el.querySelector(".portal-link input"); inp.focus(); inp.select(); toast("リンクを選択しました", true); }
+  };
+}
+
 const WORK_STYLE_JA = { onsite: "店舗勤務", online: "オンライン", both: "どちらも" };
 const AVAIL_JA = { available: "即勤務可", assigned: "勤務中", unavailable: "対応不可" };
 const AVAIL_CLS = { available: "green", assigned: "warn", unavailable: "gray" };
@@ -151,12 +180,17 @@ async function loadClients() {
         </div>
         <div class="card-actions">
           <button class="ghost" data-edit="${c.id}">編集</button>
+          <button class="ghost" data-portal="${c.id}">ポータル</button>
           <button class="ghost" data-del="${c.id}">削除</button>
         </div>
       </div>
       <div class="chips"><span class="chip ${c.kind === "existing" ? "green" : ""}">${KIND_JA[c.kind] || c.kind}</span></div>
-      ${c.notes ? `<div class="card-meta pre">${esc(c.notes)}</div>` : ""}`;
+      ${c.notes ? `<div class="card-meta pre">${esc(c.notes)}</div>` : ""}
+      <div class="portal-wrap" hidden>${portalLinkBlock("client", c.portal_token)}</div>`;
     el.querySelector("[data-edit]").onclick = () => editClient(c);
+    const pw = el.querySelector(".portal-wrap");
+    el.querySelector("[data-portal]").onclick = () => pw.toggleAttribute("hidden");
+    wirePortalCopy(el);
     el.querySelector("[data-del]").onclick = async () => {
       if (!confirm("この店舗を削除しますか？関連する求人も削除されます。")) return;
       await api(`/api/clients/${c.id}`, { method: "DELETE" });
@@ -227,6 +261,7 @@ async function loadTalents() {
         <div class="card-actions">
           <button class="ghost" data-edit="${t.id}">編集</button>
           <button class="ghost" data-verify="${t.id}">検証</button>
+          <button class="ghost" data-portal="${t.id}">ポータル</button>
           <button class="ghost" data-contact="${t.id}">連絡先</button>
           <button class="ghost" data-del="${t.id}">削除</button>
         </div>
@@ -234,9 +269,13 @@ async function loadTalents() {
       <div class="chips">${skills}${langs}<span class="chip ${AVAIL_CLS[t.availability]}">${AVAIL_JA[t.availability]}</span></div>
       ${countries}
       ${t.profile ? `<div class="card-meta">${esc(t.profile)}</div>` : ""}
+      <div class="portal-wrap" hidden>${portalLinkBlock("talent", t.portal_token)}</div>
       ${contactBlock(t)}`;
     el.querySelector("[data-edit]").onclick = () => editTalent(t);
     el.querySelector("[data-verify]").onclick = () => openVerification(t);
+    const pw = el.querySelector(".portal-wrap");
+    el.querySelector("[data-portal]").onclick = () => pw.toggleAttribute("hidden");
+    wirePortalCopy(el);
     el.querySelector("[data-del]").onclick = async () => {
       if (!confirm("削除しますか？")) return;
       await api(`/api/talents/${t.id}`, { method: "DELETE" });
@@ -877,6 +916,12 @@ function renderPlList(matches) {
       <label class="pl-inline">在籍日数<input type="number" data-days="${m.id}" value="${m.retention_days || 0}" /></label>` : "";
     const leftReason = (hired && m.retention === "left")
       ? `<label class="pl-inline pl-grow">離職理由<input data-reason="${m.id}" value="${esc(m.left_reason || "")}" /></label>` : "";
+    const react = [];
+    if (m.client_interest === "interested") react.push('<span class="react-pill green">🏬 企業: 面接希望</span>');
+    else if (m.client_interest === "passed") react.push('<span class="react-pill gray">🏬 企業: 見送り</span>');
+    if (m.candidate_interest === "interested") react.push('<span class="react-pill green">🧑‍🍳 候補者: 応募希望</span>');
+    else if (m.candidate_interest === "declined") react.push('<span class="react-pill gray">🧑‍🍳 候補者: 見送り</span>');
+    const reactRow = react.length ? `<div class="react-row">${react.join("")}</div>` : "";
     el.innerHTML = `
       <div class="card-head">
         <div>
@@ -885,6 +930,7 @@ function renderPlList(matches) {
         </div>
         <button class="ghost" data-del="${m.id}">削除</button>
       </div>
+      ${reactRow}
       <div class="pl-controls">
         <label class="pl-inline">ステータス<select data-status="${m.id}">${opts}</select></label>
         ${retSel}${leftReason}

@@ -49,6 +49,7 @@ class ClientCreate(ClientBase):
 class ClientOut(ClientBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    portal_token: str = ""
     created_at: _dt.datetime
 
 
@@ -108,6 +109,7 @@ class TalentCreate(TalentBase):
 class TalentOut(TalentBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    portal_token: str = ""
     created_at: _dt.datetime
     trust: dict[str, Any] | None = None  # 検証スコア（信頼度サマリ）
 
@@ -218,6 +220,8 @@ class MatchOut(_CoerceBase):
     retention: str = ""
     retention_days: int = 0
     left_reason: str = ""
+    client_interest: str = ""
+    candidate_interest: str = ""
     created_at: _dt.datetime
     talent: TalentOut | None = None
     job_title: str | None = None
@@ -255,6 +259,12 @@ class VisaAssessRequest(BaseModel):
     experience_years: float = 0
     japanese_level: int = 0
     held_status: str = ""
+
+
+class PortalInterest(BaseModel):
+    """ポータルからの反応（企業=interested/passed、候補者=interested/declined）."""
+
+    interest: str = ""
 
 
 class RunMatchRequest(BaseModel):

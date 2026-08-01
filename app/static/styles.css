@@ -577,3 +577,37 @@ body.modal-open { overflow: hidden; }
   .vm-item { flex-direction: column; }
   .vm-item-actions { flex-direction: row; align-self: stretch; justify-content: space-between; }
 }
+
+/* ===== ポータル（企業／候補者） ===== */
+.portal-cands { display: flex; flex-direction: column; gap: 12px; margin-top: 6px; }
+.pc-card { border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; background: var(--panel-2); }
+.pc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.pc-name { font-size: 15px; font-weight: 800; color: var(--text); }
+.pc-card .chips { margin: 10px 0 4px; }
+.pc-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.pc-actions button:disabled { opacity: .65; cursor: default; }
+.pc-note { font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+.portal-foot { max-width: 1200px; margin: 8px auto 40px; color: var(--muted); font-size: 12px; text-align: center; }
+
+/* 内部UI: ポータル共有リンク行 */
+.portal-link {
+  display: flex; align-items: center; gap: 8px; margin-top: 10px;
+  background: var(--accent-soft); border: 1px solid #cfe0ff; border-radius: 9px; padding: 8px 10px;
+}
+.portal-link .pl-ico { font-size: 14px; }
+.portal-link input {
+  flex: 1; min-width: 0; font-size: 12px; padding: 6px 8px; background: #fff;
+  border: 1px solid var(--border-strong); border-radius: 7px; color: var(--muted);
+}
+.portal-link button { flex-shrink: 0; }
+
+@media (max-width: 640px) {
+  .pc-head { flex-wrap: wrap; }
+  .pc-actions button { flex: 1 1 100%; min-height: 44px; }
+}
+
+/* ポータル反応ピル（採用管理） */
+.react-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
+.react-pill { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--border-strong); background: #eef2f8; color: var(--muted); }
+.react-pill.green { background: var(--accent-2-soft); color: #0e8a68; border-color: #b7e6d6; }
+.react-pill.gray { background: #eef2f8; color: var(--muted); }

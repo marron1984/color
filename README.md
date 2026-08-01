@@ -23,6 +23,7 @@
 - 🛂 **ビザ／在留資格の適格性判定**: 国籍×勤務国×職種×経験から、想定ビザ種別・要件・目安期間・スポンサー要否・実現可能性を自動判定し、マッチング結果に表示（日本受入＝特定技能等／海外送出＝E-2・EP・482 等）
 - 📈 **採用管理＋アウトカム学習（定着率フィードバック）**: マッチング候補を選考パイプライン（提案→面接→内定→採用）で管理し、採用後の**在籍／離職・在籍日数・離職理由**を記録。実績から「成功した採用に効いた観点」を学習し、マッチングの重みに反映（「学習した重みで評価」）。決定率・定着率・平均在籍日数を可視化
 - 🔎 **人材の"検証"レイヤー（信頼性の裏取り）**: 本人確認・職歴・スキル・語学・資格・学歴・ビザ書類・リファレンスの確認状況（未検証/確認中/確認済/相違あり）と証跡を記録。重み付きで**検証スコア（信頼度）**を算出し、人材一覧・マッチング結果に🔎バッジで表示。相違ありは⚠で警告
+- 🔗 **企業ポータル／候補者ポータル**: クライアント・候補者に**共有リンク（トークン付き）**を発行。企業は自社求人に提案された候補を**個人情報を伏せた状態**で確認し「面接希望／見送り」を、候補者は自分への提案求人を確認し「応募したい／見送り」を返信。反応は採用管理に反映
 - 📊 **説明可能なスコア**: スキル・経験 / 対応言語 / 待遇条件 / 勤務国 / 職種 / 勤務形態 / 稼働可否の7観点を内訳表示
 - 💡 **推薦理由の自然文生成**: Claude API があれば LLM で推薦理由を生成、無ければスコア明細からテンプレート生成（**API キー無しでも動作**）
 - 📄 **履歴書の自動読み込み**: PDF・画像・テキストの履歴書からスタッフ登録フォームを自動入力（国籍・語学・在留資格・希望勤務国も抽出。Claude API があれば PDF/画像も解析）
@@ -147,6 +148,22 @@ STAFFING_DATABASE_URL="postgres://user:pass@host/dbname?sslmode=require"
 - API: `GET /api/verifications/meta`・`GET/POST /api/talents/{id}/verifications`・
   `PATCH /api/verifications/{id}`・`DELETE /api/verifications/{id}`。
 
+## 企業ポータル／候補者ポータル
+
+社内担当者だけでなく、**クライアント（企業）と候補者**が直接使える共有ビューを用意しました（`app/portal.py`）。
+認証基盤の代わりに、店舗・人材ごとの**推測困難なトークン付きリンク**でアクセスします。
+
+- **企業ポータル**（`/portal?c=<token>`）: 自社求人に提案された候補を**氏名・連絡先・住所を伏せた状態**で確認。
+  スキル・経験・語学・国籍・ビザ状況・適合度・推薦理由・**検証スコア**を提示し、「面接希望／見送り」を返信できます。
+  氏名・連絡先はシーコレクションが仲介します。
+- **候補者ポータル**（`/portal?t=<token>`）: 自分に提案された求人を確認し、「応募したい／見送り」を返信。
+  求人の勤務国・給与（多通貨対応）・雇用形態・福利厚生などを提示します。
+- **反応の反映**: 企業の「面接希望」は選考ステータスを面接段階へ進め、企業・候補者双方の反応は
+  **採用管理**タブにピルで表示されます。
+- 社内 UI では、店舗カード・人材カードの「ポータル」ボタンから共有リンクをコピー／別タブで開けます。
+- API: `GET /api/portal/client/{token}`・`POST /api/portal/client/{token}/matches/{id}`・
+  `GET /api/portal/talent/{token}`・`POST /api/portal/talent/{token}/matches/{id}`。
+
 ## 登録項目（詳細）
 
 求人・人材の登録では、実務で必要な詳細項目まで入力できます（長い項目は「詳細（追記事項）」として折りたたみ表示）。
@@ -243,6 +260,10 @@ STAFFING_DATABASE_URL="postgres://user:pass@host/dbname?sslmode=require"
 | GET | `/api/verifications/meta` | 検証項目の選択肢（カテゴリ・ステータス・方法） |
 | GET/POST | `/api/talents/{id}/verifications` | **検証項目**の一覧（検証スコア付き）・追加 |
 | PATCH/DELETE | `/api/verifications/{id}` | 検証項目の更新（状態変更で確認日時を自動記録）・削除 |
+| GET | `/api/portal/client/{token}` | **企業ポータル**（提案候補を個人情報を伏せて取得） |
+| POST | `/api/portal/client/{token}/matches/{id}` | 企業の反応（面接希望/見送り） |
+| GET | `/api/portal/talent/{token}` | **候補者ポータル**（提案求人を取得） |
+| POST | `/api/portal/talent/{token}/matches/{id}` | 候補者の反応（応募希望/見送り） |
 
 対話的な API ドキュメントは起動後 `/docs`（Swagger UI）で確認できます。
 
@@ -267,16 +288,18 @@ app/
   visa.py       ビザ／在留資格の適格性判定エンジン（ルールベース）
   learning.py   アウトカム学習（定着率フィードバック・観点別重要度）
   verification.py 人材の検証レイヤー（信頼性スコア算出）
+  portal.py     企業／候補者ポータル用の整形・個人情報マスキング
   ai.py         Claude API 推薦理由レイヤー（フォールバック付き）
   resume.py     履歴書の読み込み・構造化抽出（LLM／簡易解析）
   seed.py       デモデータ投入（飲食店）
   database.py   DB 接続（サーバーレスでは /tmp、STAFFING_DATABASE_URL で上書き可）
-  static/       Web UI（index.html / app.js / styles.css）
+  static/       Web UI（index.html / app.js / portal.html / portal.js / styles.css）
 tests/
   test_matching.py  マッチングエンジンのテスト
   test_visa.py      ビザ判定のテスト
   test_learning.py  アウトカム学習のテスト
   test_verification.py 検証レイヤーのテスト
+  test_portal.py    ポータル整形・マスキングのテスト
 vercel.json     Vercel デプロイ設定
 ```
 

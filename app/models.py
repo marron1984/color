@@ -8,6 +8,7 @@ PDF「人材紹介事業 3つの構成要素」に対応:
 from __future__ import annotations
 
 import datetime as _dt
+import secrets
 from typing import Any
 
 from sqlalchemy import (
@@ -28,6 +29,11 @@ def _now() -> _dt.datetime:
     return _dt.datetime.now(_dt.timezone.utc)
 
 
+def _token() -> str:
+    """ポータル共有リンク用の推測困難なトークン."""
+    return secrets.token_urlsafe(12)
+
+
 class Client(Base):
     """クライアント企業（求人を出す側）."""
 
@@ -43,6 +49,8 @@ class Client(Base):
     contact_email: Mapped[str] = mapped_column(String(200), default="")
     phone: Mapped[str] = mapped_column(String(50), default="")
     notes: Mapped[str] = mapped_column(Text, default="")
+    # 企業ポータルの共有リンク用トークン
+    portal_token: Mapped[str] = mapped_column(String(64), default=_token)
     created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
 
     jobs: Mapped[list["Job"]] = relationship(
@@ -98,6 +106,8 @@ class Talent(Base):
     overseas_experience: Mapped[str] = mapped_column(Text, default="")   # 海外勤務経験
     self_pr: Mapped[str] = mapped_column(Text, default="")               # 自己PR
     future_goals: Mapped[str] = mapped_column(Text, default="")          # 将来の目標
+    # 候補者ポータルの共有リンク用トークン
+    portal_token: Mapped[str] = mapped_column(String(64), default=_token)
     created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
 
     matches: Mapped[list["Match"]] = relationship(
@@ -196,6 +206,9 @@ class Match(Base):
     retention: Mapped[str] = mapped_column(String(20), default="")   # active(在籍) / left(離職)
     retention_days: Mapped[int] = mapped_column(Integer, default=0)  # 在籍/在籍していた日数
     left_reason: Mapped[str] = mapped_column(Text, default="")       # 離職理由
+    # --- ポータルからの反応 ---
+    client_interest: Mapped[str] = mapped_column(String(20), default="")     # 企業側: interested / passed
+    candidate_interest: Mapped[str] = mapped_column(String(20), default="")  # 候補者側: interested / declined
     created_at: Mapped[_dt.datetime] = mapped_column(DateTime, default=_now)
 
     job: Mapped["Job"] = relationship(back_populates="matches")

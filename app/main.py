@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import ai, learning, matching, models, resume, schemas, verification, visa
+from app import ai, learning, matching, models, portal, resume, schemas, verification, visa
 from app.database import IS_PERSISTENT, USING_EXTERNAL, get_db, init_db
 
 app = FastAPI(
@@ -39,10 +39,30 @@ def _bootstrap() -> None:
             from app.seed import seed_if_empty
 
             seed_if_empty()
+        _backfill_portal_tokens()
     except Exception as exc:  # noqa: BLE001 - 初期化失敗でもアプリは起動させる
         import logging
 
         logging.getLogger("uvicorn.error").warning("DB 初期化をスキップ: %s", exc)
+
+
+def _backfill_portal_tokens() -> None:
+    """既存レコード（列追加前に作成）に共有トークンを付与する。"""
+    from app.database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        changed = False
+        for model in (models.Client, models.Talent):
+            for row in db.scalars(select(model).where(
+                (model.portal_token == "") | (model.portal_token.is_(None))
+            )).all():
+                row.portal_token = models._token()
+                changed = True
+        if changed:
+            db.commit()
+    finally:
+        db.close()
 
 
 _bootstrap()
@@ -548,11 +568,122 @@ def get_learning(db: Session = Depends(get_db)) -> dict:
 
 
 # --------------------------------------------------------------------------- #
+# ポータル（企業ポータル / 候補者ポータル）— トークン付き共有リンクでアクセス
+# --------------------------------------------------------------------------- #
+def _client_by_token(token: str, db: Session) -> models.Client:
+    if not token:
+        raise HTTPException(404, "リンクが無効です")
+    c = db.scalar(select(models.Client).where(models.Client.portal_token == token))
+    if not c:
+        raise HTTPException(404, "リンクが無効です")
+    return c
+
+
+def _talent_by_token(token: str, db: Session) -> models.Talent:
+    if not token:
+        raise HTTPException(404, "リンクが無効です")
+    t = db.scalar(select(models.Talent).where(models.Talent.portal_token == token))
+    if not t:
+        raise HTTPException(404, "リンクが無効です")
+    return t
+
+
+@app.get("/api/portal/client/{token}")
+def portal_client(token: str, db: Session = Depends(get_db)) -> dict:
+    """企業ポータル: 自社求人に提案された候補を（個人情報を伏せて）確認する。"""
+    client = _client_by_token(token, db)
+    jobs = db.scalars(
+        select(models.Job).where(models.Job.client_id == client.id)
+        .order_by(models.Job.id.desc())
+    ).all()
+    job_out = []
+    for job in jobs:
+        matches = db.scalars(
+            select(models.Match).where(models.Match.job_id == job.id)
+            .order_by(models.Match.score.desc())
+        ).all()
+        job_out.append({
+            "job": portal.public_job(job, include_client=False),
+            "candidates": [portal.public_candidate(m) for m in matches],
+        })
+    return {"client": {"name": client.name}, "jobs": job_out}
+
+
+@app.post("/api/portal/client/{token}/matches/{match_id}")
+def portal_client_interest(
+    token: str, match_id: int, payload: schemas.PortalInterest,
+    db: Session = Depends(get_db),
+) -> dict:
+    """企業ポータル: 候補への反応（興味あり/見送り）を記録する。"""
+    client = _client_by_token(token, db)
+    match = db.get(models.Match, match_id)
+    if not match or not match.job or match.job.client_id != client.id:
+        raise HTTPException(404, "対象が見つかりません")
+    if payload.interest not in {"", "interested", "passed"}:
+        raise HTTPException(400, "interest は interested / passed / 空")
+    match.client_interest = payload.interest
+    # 興味ありは選考を面接段階へ進める（未進行のときのみ）
+    if payload.interest == "interested" and match.status == "proposed":
+        match.status = "interview"
+    db.commit()
+    return {"ok": True, "client_interest": match.client_interest, "status": match.status}
+
+
+@app.get("/api/portal/talent/{token}")
+def portal_talent(token: str, db: Session = Depends(get_db)) -> dict:
+    """候補者ポータル: 自分に提案された求人を確認する。"""
+    talent = _talent_by_token(token, db)
+    matches = db.scalars(
+        select(models.Match).where(models.Match.talent_id == talent.id)
+        .order_by(models.Match.score.desc())
+    ).all()
+    offers = []
+    for m in matches:
+        if not m.job:
+            continue
+        offers.append({
+            "match_id": m.id,
+            "score": m.score,
+            "reason": m.reason or "",
+            "status": m.status,
+            "candidate_interest": m.candidate_interest or "",
+            **portal.public_job(m.job, include_client=True),
+        })
+    return {
+        "talent": {"name": talent.name, "availability": talent.availability},
+        "offers": offers,
+    }
+
+
+@app.post("/api/portal/talent/{token}/matches/{match_id}")
+def portal_talent_interest(
+    token: str, match_id: int, payload: schemas.PortalInterest,
+    db: Session = Depends(get_db),
+) -> dict:
+    """候補者ポータル: 求人への反応（応募したい/見送り）を記録する。"""
+    talent = _talent_by_token(token, db)
+    match = db.get(models.Match, match_id)
+    if not match or match.talent_id != talent.id:
+        raise HTTPException(404, "対象が見つかりません")
+    if payload.interest not in {"", "interested", "declined"}:
+        raise HTTPException(400, "interest は interested / declined / 空")
+    match.candidate_interest = payload.interest
+    db.commit()
+    return {"ok": True, "candidate_interest": match.candidate_interest}
+
+
+# --------------------------------------------------------------------------- #
 # 静的フロント配信（最後にマウント）
 # --------------------------------------------------------------------------- #
 @app.get("/")
 def index():
     return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/portal")
+def portal_page():
+    """企業／候補者ポータル（トークンはクエリで受け取り、JS で読み込む）。"""
+    return FileResponse(STATIC_DIR / "portal.html")
 
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
